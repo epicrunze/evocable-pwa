@@ -1,0 +1,38 @@
+---
+description: Security and deployment best practices
+---
+
+# Security & Deployment
+
+## Security Fundamentals
+- **Input Validation**: Sanitize all user inputs, validate file uploads
+- **Authentication**: Secure token storage, implement refresh logic
+- **CSP**: Content Security Policy headers
+- **HTTPS**: Force HTTPS in production, secure cookies
+- **Dependencies**: Regular `npm audit`, keep dependencies updated
+
+## File Upload Security
+- **Validation**: File type, size limits, scan for malicious content
+- **Storage**: Secure file storage, signed URLs for access
+- **Processing**: Sandbox file processing, timeout limits
+
+## Environment Management
+- **Variables**: Use `.env.local` for secrets, validate required env vars
+- **API Keys**: Never expose server-side keys to client
+- **CORS**: Proper CORS configuration for API endpoints
+
+## PWA Security
+- **Service Worker**: Validate cached resources, secure update mechanism
+- **IndexedDB**: Encrypt sensitive data, implement data retention policies
+- **Offline**: Secure offline data access, sync validation
+
+## Deployment (Vercel)
+- **Build**: Optimize build size, enable compression
+- **Monitoring**: Error tracking, performance monitoring
+- **Environment**: Separate staging/production configurations
+- **Headers**: Security headers, caching strategies
+
+## Git & Code Quality
+- **Commits**: Conventional commits, meaningful messages
+- **Branches**: Feature branches, protect main branch
+- **Reviews**: Require PR reviews, run CI/CD checks

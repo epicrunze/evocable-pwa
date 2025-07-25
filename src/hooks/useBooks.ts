@@ -216,7 +216,7 @@ export function useBooks(): UseBookData {
 
 // Individual book hook
 export function useBook(bookId: string) {
-  const queryClient = useQueryClient();
+
 
   const {
     data: book,
@@ -246,8 +246,6 @@ export function useBook(bookId: string) {
 
 // Hook for processing books (those that need status updates)
 export function useProcessingBooks() {
-  const queryClient = useQueryClient();
-  
   const {
     data: processingBooks = [],
     isLoading: loading,

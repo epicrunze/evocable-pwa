@@ -1,0 +1,57 @@
+---
+globs: *.tsx,*.ts
+alwaysApply: false
+---
+# React & Next.js Patterns
+
+## Components
+- Functional components with TypeScript interfaces
+- Server Components by default, `"use client"` only when needed
+- Feature components in `features/`, reusable in `ui/`
+
+## State Management
+- **Server state**: TanStack Query hooks in [lib/api/](mdc:src/lib/api/)
+- **Client state**: Zustand for persistence, useState for local
+- **Forms**: react-hook-form + Zod schemas from [types/](mdc:src/types/)
+
+## Next.js App Router
+- Use [layout.tsx](mdc:src/app/layout.tsx) for shared layouts
+- Export metadata from page components
+- Follow App Router file conventions
+
+## Styling & Assets
+- Tailwind classes with [cn()](mdc:src/lib/utils.ts) utility
+- Lucide icons, optimize images with Next.js Image
+- class-variance-authority for component variants
+
+## Error Handling
+- Error boundaries for components
+- Try-catch for async operations
+- User-friendly error messages
+
+# React & Next.js Patterns
+
+## Components
+- Functional components with TypeScript interfaces
+- Server Components by default, `"use client"` only when needed
+- Feature components in `features/`, reusable in `ui/`
+
+## State Management
+- **Server state**: TanStack Query hooks in [lib/api/](mdc:src/lib/api/)
+- **Client state**: Zustand for persistence, useState for local
+- **Forms**: react-hook-form + Zod schemas from [types/](mdc:src/types/)
+
+## Next.js App Router
+- Use [layout.tsx](mdc:src/app/layout.tsx) for shared layouts
+- Export metadata from page components
+- Follow App Router file conventions
+
+## Styling & Assets
+- Tailwind classes with [cn()](mdc:src/lib/utils.ts) utility
+- Lucide icons, optimize images with Next.js Image
+- class-variance-authority for component variants
+
+## Error Handling
+- Error boundaries for components
+- Try-catch for async operations
+- User-friendly error messages

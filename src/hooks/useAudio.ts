@@ -66,14 +66,14 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
   });
 
   // Fetch bookmarks (disabled for now as backend endpoint doesn't exist)
-  const { data: bookmarks = [], refetch: refetchBookmarks } = useQuery({
+  useQuery({
     queryKey: ['bookmarks', bookId],
     queryFn: async () => {
       if (!bookId) return [];
       try {
         const response = await audioApi.getBookmarks(bookId);
         return response.data || [];
-      } catch (error) {
+      } catch {
         // Bookmarks endpoint doesn't exist yet, return empty array
         console.log('Bookmarks endpoint not available, using local storage fallback');
         return [];
@@ -130,7 +130,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
       handleChunkEnd();
     });
 
-    audio.addEventListener('error', (e) => {
+    audio.addEventListener('error', () => {
       const error: AudioError = {
         type: 'playback',
         message: 'Audio playback error',
@@ -160,7 +160,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
       }
 
       currentChunkRef.current = chunkIndex;
-      const chunkUrl = audioApi.getAuthenticatedChunkUrl(bookId, chunkIndex);
+      const chunkUrl = await audioApi.getAuthenticatedChunkUrl(bookId, chunkIndex);
       console.log('loadChunk: Loading chunk', { chunkIndex, chunkUrl });
       
       audioRef.current.src = chunkUrl;
@@ -265,7 +265,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
         } : null);
 
         isSeekingRef.current = false;
-      } catch (error) {
+      } catch {
         isSeekingRef.current = false;
         const audioError: AudioError = {
           type: 'playback',

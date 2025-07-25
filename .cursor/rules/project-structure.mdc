@@ -1,0 +1,54 @@
+---
+alwaysApply: true
+---
+
+
+# Evocable PWA - Next.js 15 Audiobook App
+
+## Architecture
+- **Framework**: Next.js 15 App Router + TypeScript
+- **UI**: React 19 + Tailwind CSS + Lucide icons
+- **State**: TanStack Query (server) + Zustand (client)
+- **Storage**: IndexedDB (Dexie) + PWA offline support
+- **Forms**: react-hook-form + Zod validation
+
+## Key Directories
+- [src/app/](mdc:src/app/) - Next.js App Router (pages/layouts)
+- [src/components/](mdc:src/components/) - Components organized by:
+  - `features/` - Feature-specific (auth, library, upload, player)
+  - `ui/` - Reusable UI components
+  - `common/` - Shared layout components
+- [src/lib/](mdc:src/lib/) - Utilities, API client, auth
+- [src/hooks/](mdc:src/hooks/) - Custom React hooks
+- [src/types/](mdc:src/types/) - TypeScript definitions
+
+## Supported Formats
+PDF, EPUB, TXT → Audiobook conversion
+
+## Core Dependencies
+`@tanstack/react-query` `zustand` `dexie` `react-hook-form` `zod` `class-variance-authority` `tailwind-merge` `next-pwa`
+
+# Evocable PWA - Next.js 15 Audiobook App
+
+## Architecture
+- **Framework**: Next.js 15 App Router + TypeScript
+- **UI**: React 19 + Tailwind CSS + Lucide icons
+- **State**: TanStack Query (server) + Zustand (client)
+- **Storage**: IndexedDB (Dexie) + PWA offline support
+- **Forms**: react-hook-form + Zod validation
+
+## Key Directories
+- [src/app/](mdc:src/app/) - Next.js App Router (pages/layouts)
+- [src/components/](mdc:src/components/) - Components organized by:
+  - `features/` - Feature-specific (auth, library, upload, player)
+  - `ui/` - Reusable UI components
+  - `common/` - Shared layout components
+- [src/lib/](mdc:src/lib/) - Utilities, API client, auth
+- [src/hooks/](mdc:src/hooks/) - Custom React hooks
+- [src/types/](mdc:src/types/) - TypeScript definitions
+
+## Supported Formats
+PDF, EPUB, TXT → Audiobook conversion
+
+## Core Dependencies
+`@tanstack/react-query` `zustand` `dexie` `react-hook-form` `zod` `class-variance-authority` `tailwind-merge` `next-pwa`

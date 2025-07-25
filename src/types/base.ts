@@ -4,7 +4,7 @@ export interface BaseEntity {
   updated_at: string;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   data?: T;
   error?: ApiError;
   loading: boolean;
@@ -14,7 +14,7 @@ export interface ApiResponse<T = any> {
 export interface ApiError {
   code: string;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
   retry?: boolean;
 }
 

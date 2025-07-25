@@ -1,0 +1,32 @@
+
+# Testing Guidelines
+
+## Stack
+- **Unit/Integration**: Jest + Testing Library + jsdom
+- **E2E**: Playwright
+- **API Mocking**: MSW (Mock Service Worker)
+
+## Organization
+- Co-locate tests: `Component.test.tsx`
+- Use `__tests__/` for complex suites
+- Mock external dependencies appropriately
+
+## React Testing
+- Testing Library user-centric queries
+- Test interactions, not implementation
+- Mock API calls with MSW handlers
+- Test loading/success/error states
+
+## Key Test Areas
+- **Components**: User interactions, accessibility
+- **API**: TanStack Query hooks, offline behavior
+- **Auth**: Login/logout flows, protected routes
+- **Upload**: File validation, drag-drop, progress
+- **Player**: Play/pause/seek, playlist management
+- **PWA**: Service worker, offline capabilities
+
+## Best Practices
+- Descriptive test names
+- Use `data-testid` for complex queries
+- Clean up after tests
+- Maintain coverage for critical paths

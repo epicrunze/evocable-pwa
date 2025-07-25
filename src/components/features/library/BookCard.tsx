@@ -99,7 +99,6 @@ export const BookCard = memo<BookCardProps>(({
   book,
   onPlay,
   onDownload,
-  onDelete: _onDelete,
   isDownloaded,
   downloadProgress,
   className = ''

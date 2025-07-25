@@ -1,0 +1,55 @@
+---
+globs: *.tsx,*.css
+alwaysApply: false
+---
+# Styling Guidelines
+
+## Tailwind CSS
+- Use [cn()](mdc:src/lib/utils.ts) for conditional classes
+- class-variance-authority for component variants
+- Mobile-first responsive design
+- Support light/dark themes
+
+## Component Patterns
+- Build reusable UI in [components/ui/](mdc:src/components/ui/)
+- Consistent design tokens (spacing, colors, typography)
+- Proper focus states and accessibility
+- Loading/disabled states for interactive elements
+
+## PWA Considerations
+- Minimum 44px touch targets
+- Optimize for mobile viewports
+- App-like navigation patterns
+- Offline state styling
+
+## Architecture
+- Minimal custom CSS in [globals.css](mdc:src/app/globals.css)
+- Avoid inline styles
+- Use semantic color naming (primary, secondary, accent)
+- Ensure sufficient contrast ratios
+
+# Styling Guidelines
+
+## Tailwind CSS
+- Use [cn()](mdc:src/lib/utils.ts) for conditional classes
+- class-variance-authority for component variants
+- Mobile-first responsive design
+- Support light/dark themes
+
+## Component Patterns
+- Build reusable UI in [components/ui/](mdc:src/components/ui/)
+- Consistent design tokens (spacing, colors, typography)
+- Proper focus states and accessibility
+- Loading/disabled states for interactive elements
+
+## PWA Considerations
+- Minimum 44px touch targets
+- Optimize for mobile viewports
+- App-like navigation patterns
+- Offline state styling
+
+## Architecture
+- Minimal custom CSS in [globals.css](mdc:src/app/globals.css)
+- Avoid inline styles
+- Use semantic color naming (primary, secondary, accent)
+- Ensure sufficient contrast ratios

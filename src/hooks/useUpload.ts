@@ -53,7 +53,7 @@ export function useUpload(options: UploadOptions = {}) {
     }
   }, [options]);
 
-  const createUploadProgress = useCallback((file: UploadFile, formData: UploadFormData): UploadProgress => {
+  const createUploadProgress = useCallback((file: UploadFile): UploadProgress => {
     return {
       id: file.id,
       filename: file.file.name,
@@ -203,7 +203,7 @@ export function useUpload(options: UploadOptions = {}) {
     const startTime = Date.now();
 
     // Create initial progress
-    const initialProgress = createUploadProgress(file, formData);
+    const initialProgress = createUploadProgress(file);
     setUploads(prev => [...prev, initialProgress]);
 
     // Store active upload reference
@@ -225,8 +225,6 @@ export function useUpload(options: UploadOptions = {}) {
         formData,
         abortController,
         (progress, bytesUploaded, speed) => {
-          const now = Date.now();
-          const elapsed = (now - startTime) / 1000;
           const timeRemaining = speed > 0 ? (file.file.size - bytesUploaded) / speed : undefined;
 
           updateUploadProgress(uploadId, {

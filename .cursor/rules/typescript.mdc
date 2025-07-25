@@ -1,0 +1,61 @@
+---
+globs: *.tsx,*.ts
+alwaysApply: false
+---
+# TypeScript Standards
+
+## Type Organization
+- All types in [src/types/](mdc:src/types/) directory
+- Interfaces for objects, types for unions/primitives
+- Export shared types, keep local types inline
+
+## Best Practices
+- Avoid `any`, use `unknown` if needed
+- Named exports over default exports
+- Group imports: external libs first, then internal
+- `import type` for type-only imports
+
+## Component Types
+- Always type component props with interfaces
+- Extend HTML props for UI components: `interface Props extends ButtonHTMLAttributes<HTMLButtonElement>`
+- Generic props for reusable components
+
+## API & Forms
+- Type API responses/requests in [types/](mdc:src/types/)
+- Zod schemas for runtime validation
+- Proper TanStack Query hook typing
+- Handle Promise<T> returns and null/undefined cases
+
+## Utility Types
+- Leverage Pick, Omit, Partial, etc.
+- Type guards for runtime checking
+- Const assertions where appropriate
+
+# TypeScript Standards
+
+## Type Organization
+- All types in [src/types/](mdc:src/types/) directory
+- Interfaces for objects, types for unions/primitives
+- Export shared types, keep local types inline
+
+## Best Practices
+- Avoid `any`, use `unknown` if needed
+- Named exports over default exports
+- Group imports: external libs first, then internal
+- `import type` for type-only imports
+
+## Component Types
+- Always type component props with interfaces
+- Extend HTML props for UI components: `interface Props extends ButtonHTMLAttributes<HTMLButtonElement>`
+- Generic props for reusable components
+
+## API & Forms
+- Type API responses/requests in [types/](mdc:src/types/)
+- Zod schemas for runtime validation
+- Proper TanStack Query hook typing
+- Handle Promise<T> returns and null/undefined cases
+
+## Utility Types
+- Leverage Pick, Omit, Partial, etc.
+- Type guards for runtime checking
+- Const assertions where appropriate

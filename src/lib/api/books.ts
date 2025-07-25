@@ -91,7 +91,7 @@ export class BooksApi {
         loading: false,
         timestamp: new Date().toISOString()
       };
-    } catch (error) {
+    } catch {
       return {
         data: undefined,
         error: {

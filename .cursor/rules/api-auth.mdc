@@ -1,0 +1,31 @@
+
+# API & Authentication
+
+## API Setup
+- Base client in [lib/api-client.ts](mdc:src/lib/api-client.ts)
+- Custom hooks in [lib/api/](mdc:src/lib/api/) for TanStack Query
+- Environment: `NEXT_PUBLIC_API_URL`
+- RESTful conventions with proper HTTP status codes
+
+## Authentication
+- Auth utilities in [lib/auth/](mdc:src/lib/auth/)
+- RouteGuard component for protected routes
+- Secure token storage (not localStorage for sensitive data)
+- Session management with refresh handling
+
+## File Processing
+- Support: PDF, EPUB, TXT → Audiobook conversion
+- Validate uploads: type, size limits
+- Handle upload progress and errors
+
+## Offline & PWA
+- IndexedDB via Dexie for offline data
+- Cache API responses
+- Sync when connection restored
+- Handle offline states in UI
+
+## Security
+- Input sanitization and validation
+- HTTPS in production
+- Proper CORS policies
+- Rate limiting considerations

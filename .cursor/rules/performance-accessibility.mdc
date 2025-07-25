@@ -1,0 +1,36 @@
+---
+description: Performance optimization and accessibility guidelines
+---
+
+# Performance & Accessibility
+
+## Performance
+- **React**: Use React.memo, useMemo, useCallback for expensive operations
+- **Next.js**: Leverage static generation, dynamic imports, Image optimization
+- **Bundle**: Code splitting, tree shaking, analyze with `npm run build`
+- **PWA**: Service worker caching, preload critical resources
+- **Audio**: Stream large files, implement proper buffering
+
+## Accessibility (WCAG 2.1)
+- **Semantic HTML**: Use proper heading hierarchy (h1-h6)
+- **ARIA**: Labels, roles, states for complex components
+- **Keyboard**: Tab navigation, focus management, escape handling
+- **Screen Readers**: Alt text, descriptive labels, skip links
+- **Audio Player**: Keyboard controls, transcript support, captions
+
+## Media Queries & Responsive
+- Mobile-first approach
+- Test on multiple devices and screen readers
+- Respect user preferences: prefers-reduced-motion, prefers-color-scheme
+
+## Audio-Specific A11y
+- Play/pause keyboard shortcuts (spacebar)
+- Speed controls with clear labels
+- Volume controls with ARIA live regions
+- Chapter navigation support
+- Resume playback position
+
+## Core Web Vitals
+- LCP < 2.5s (optimize images, fonts)
+- FID < 100ms (minimize JavaScript)
+- CLS < 0.1 (size images, avoid layout shifts)

@@ -52,6 +52,6 @@ const config = withPWA({
       }
     }
   ]
-})(nextConfig);
+})(nextConfig as any);
 
 export default config;

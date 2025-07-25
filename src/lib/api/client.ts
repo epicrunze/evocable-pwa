@@ -167,7 +167,7 @@ export class ApiClient {
         const error: EnhancedApiError = {
           code: 'CACHE_MISS',
           message: 'Data not available in cache',
-          details: null,
+          details: undefined,
           retry: false,
           severity: ErrorSeverity.LOW,
           timestamp: new Date().toISOString(),
@@ -190,7 +190,7 @@ export class ApiClient {
       const error: EnhancedApiError = {
         code: 'CACHE_MISS',
         message: 'Data not available in cache',
-        details: null,
+        details: undefined,
         retry: false,
         severity: ErrorSeverity.LOW,
         timestamp: new Date().toISOString(),
@@ -357,7 +357,7 @@ export class ApiClient {
         const cancelledError: EnhancedApiError = {
           code: 'CANCELLED',
           message: 'Request was cancelled',
-          details: error,
+          details: { name: error.name, message: error.message },
           retry: false,
           severity: ErrorSeverity.LOW,
           timestamp: new Date().toISOString(),
@@ -377,7 +377,7 @@ export class ApiClient {
       const apiError: EnhancedApiError = {
         code: isNetworkError ? 'NETWORK_ERROR' : 'UNKNOWN_ERROR',
         message: error instanceof Error ? error.message : 'Request failed',
-        details: error,
+        details: error as Record<string, unknown>,
         retry: isNetworkError && attempt < this.retryCount && !options.skipRetry,
         severity: isNetworkError ? ErrorSeverity.MEDIUM : ErrorSeverity.HIGH,
         timestamp: new Date().toISOString(),
@@ -510,7 +510,7 @@ export class ApiClient {
           const apiError: EnhancedApiError = {
             code: 'PARSE_ERROR',
             message: 'Failed to parse response',
-            details: error,
+            details: error as Record<string, unknown>,
             retry: false,
             severity: ErrorSeverity.HIGH,
             timestamp: new Date().toISOString(),
@@ -531,7 +531,7 @@ export class ApiClient {
         const error: EnhancedApiError = {
           code: 'NETWORK_ERROR',
           message: 'Upload failed',
-          details: null,
+          details: undefined,
           retry: false,
           severity: ErrorSeverity.HIGH,
           timestamp: new Date().toISOString(),
@@ -551,7 +551,7 @@ export class ApiClient {
         const error: EnhancedApiError = {
           code: 'TIMEOUT',
           message: 'Upload timed out',
-          details: null,
+          details: undefined,
           retry: false,
           severity: ErrorSeverity.MEDIUM,
           timestamp: new Date().toISOString(),
