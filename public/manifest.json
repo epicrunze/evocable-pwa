@@ -1,0 +1,25 @@
+{
+  "name": "Evocable PWA",
+  "short_name": "Evocable",
+  "description": "Transform your documents into audiobooks",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#129990",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "education"],
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ]
+} 

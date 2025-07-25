@@ -1,0 +1,52 @@
+{
+  "name": "evocable-pwa",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.1.1",
+    "@tanstack/react-query": "^5.81.5",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "dexie": "^4.0.11",
+    "lucide-react": "^0.525.0",
+    "next": "15.3.5",
+    "next-pwa": "^5.6.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.60.0",
+    "tailwind-merge": "^3.3.1",
+    "workbox-webpack-plugin": "^7.3.0",
+    "zod": "^3.25.76",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.53.2",
+    "@tailwindcss/postcss": "^4",
+    "@tanstack/react-query-devtools": "^5.81.5",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
+    "@types/next-pwa": "^5.6.9",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.5",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.5.1",
+    "jest": "^30.0.4",
+    "jest-environment-jsdom": "^30.0.4",
+    "msw": "^2.10.3",
+    "prettier": "^3.6.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
