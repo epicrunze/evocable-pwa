@@ -182,7 +182,7 @@ export function AudioPlayer({
           <div className="text-center">
             <p className="font-medium mb-2">No audio available</p>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              This book doesn't have any audio chunks available for playback.
+              This book doesn&apos;t have any audio chunks available for playback.
             </p>
           </div>
         </Alert>
