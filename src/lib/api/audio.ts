@@ -80,6 +80,20 @@ export class AudioApi {
   }
 
   /**
+   * Generate batch signed URLs for multiple audio chunks
+   */
+  async generateBatchSignedUrls(bookId: string, chunkIndices: number[], expiresIn: number = 3600): Promise<ApiResponse<{ 
+    signed_urls: Record<number, string>; 
+    expires_in: number 
+  }>> {
+    const url = `/api/v1/books/${bookId}/chunks/batch-signed-urls`;
+    return apiClient.post<{ signed_urls: Record<number, string>; expires_in: number }>(url, {
+      chunks: chunkIndices,
+      expires_in: expiresIn
+    });
+  }
+
+  /**
    * Get audio chunk stream URL with authentication
    * Uses signed URLs for secure access without exposing tokens
    */
