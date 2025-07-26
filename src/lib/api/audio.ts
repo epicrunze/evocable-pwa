@@ -81,23 +81,22 @@ export class AudioApi {
 
   /**
    * Get audio chunk stream URL with authentication
-   * Prefers signed URLs when available, falls back to query parameter method
+   * Uses signed URLs for secure access without exposing tokens
    */
   async getAuthenticatedChunkUrl(bookId: string, chunkIndex: number): Promise<string> {
     try {
-      // Try to generate a signed URL first
+      // Generate a signed URL for secure access
       const response = await this.generateSignedUrl(bookId, chunkIndex);
       if (response.data?.signed_url) {
         return response.data.signed_url;
       }
     } catch (error) {
-      console.warn('Failed to generate signed URL, falling back to query parameter method:', error);
+      console.warn('Failed to generate signed URL:', error);
+      throw new Error('Unable to generate secure audio URL');
     }
 
-    // Fallback to query parameter method
-    const token = apiClient['defaultHeaders']['Authorization']?.replace('Bearer ', '');
-    const baseUrl = apiClient['baseUrl'];
-    return `${baseUrl}/api/v1/books/${bookId}/chunks/${chunkIndex}?token=${token}`;
+    // No fallback to query parameter method for security reasons
+    throw new Error('Signed URL generation failed');
   }
 
   /**

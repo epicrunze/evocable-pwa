@@ -85,7 +85,7 @@ export function useUpload(options: UploadOptions = {}) {
     let lastLoaded = 0;
     let lastTime = Date.now();
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const uploadUrl = `${apiUrl}/books/upload`;
+    const uploadUrl = `${apiUrl}/api/v1/books`;
     
     console.log('📡 Upload URL:', uploadUrl);
     console.log('🔐 Auth token available:', !!apiClient.getAuthToken());

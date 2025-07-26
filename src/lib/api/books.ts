@@ -10,20 +10,20 @@ export class BooksApi {
     const params = query ? {
       search: query.search,
       status: query.status?.join(','),
-      sortBy: query.sortBy,
-      sortOrder: query.sortOrder,
+      // Note: sortBy and sortOrder are no longer supported by the modern API
+      // Sorting should be handled client-side
       page: query.page?.toString(),
       limit: query.limit?.toString(),
     } : undefined;
 
-    return apiClient.get<PaginatedResponse<Book>>('/books', params);
+    return apiClient.get<PaginatedResponse<Book>>('/api/v1/books', params);
   }
 
   /**
    * Get a specific book by ID
    */
   async getBook(id: string): Promise<ApiResponse<Book>> {
-    return apiClient.get<Book>(`/books/${id}`);
+    return apiClient.get<Book>(`/api/v1/books/${id}/status`);
   }
 
   /**
@@ -33,7 +33,7 @@ export class BooksApi {
     try {
       // Get book data and chunks data separately
       const [bookResponse, chunksResponse] = await Promise.all([
-        apiClient.get<Book>(`/books/${id}`),
+        apiClient.get<Book>(`/api/v1/books/${id}/status`),
         apiClient.get<{
           book_id: string;
           total_chunks: number;
@@ -44,7 +44,7 @@ export class BooksApi {
             url: string;
             file_size: number | null;
           }>;
-        }>(`/books/${id}/chunks`)
+        }>(`/api/v1/books/${id}/chunks`)
       ]);
 
       if (bookResponse.error || chunksResponse.error) {
@@ -112,49 +112,49 @@ export class BooksApi {
     upload: BookUpload,
     onProgress?: (progress: number) => void
   ): Promise<ApiResponse<Book>> {
-    return apiClient.upload<Book>('/books/upload', upload.file, onProgress);
+    return apiClient.upload<Book>('/api/v1/books', upload.file, onProgress);
   }
 
   /**
    * Delete a book
    */
   async deleteBook(id: string): Promise<ApiResponse<void>> {
-    return apiClient.delete<void>(`/books/${id}`);
+    return apiClient.delete<void>(`/api/v1/books/${id}`);
   }
 
   /**
    * Get book processing status
    */
   async getProcessingStatus(id: string): Promise<ApiResponse<{ status: Book['status']; percent_complete: number }>> {
-    return apiClient.get<{ status: Book['status']; percent_complete: number }>(`/books/${id}/status`);
+    return apiClient.get<{ status: Book['status']; percent_complete: number }>(`/api/v1/books/${id}/status`);
   }
 
   /**
    * Retry failed book processing
    */
   async retryProcessing(id: string): Promise<ApiResponse<Book>> {
-    return apiClient.post<Book>(`/books/${id}/retry`);
+    return apiClient.post<Book>(`/api/v1/books/${id}/retry`);
   }
 
   /**
    * Download book metadata
    */
   async downloadMetadata(id: string): Promise<ApiResponse<Blob>> {
-    return apiClient.get<Blob>(`/books/${id}/metadata`);
+    return apiClient.get<Blob>(`/api/v1/books/${id}/metadata`);
   }
 
   /**
    * Get audio chunk URL
    */
   getChunkUrl(bookId: string, chunkIndex: number): string {
-    return `${apiClient['baseUrl']}/books/${bookId}/chunks/${chunkIndex}/audio`;
+    return `${apiClient['baseUrl']}/api/v1/books/${bookId}/chunks/${chunkIndex}`;
   }
 
   /**
    * Prefetch audio chunks for offline playback
    */
   async prefetchChunks(bookId: string, chunkIndices: number[]): Promise<ApiResponse<{ cached: number[] }>> {
-    return apiClient.post<{ cached: number[] }>(`/books/${bookId}/prefetch`, {
+    return apiClient.post<{ cached: number[] }>(`/api/v1/books/${bookId}/prefetch`, {
       chunks: chunkIndices,
     });
   }

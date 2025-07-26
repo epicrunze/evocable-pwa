@@ -30,11 +30,11 @@ export const bookQueryKeys = {
 
 // API functions
 async function fetchBooks(query?: LibraryQuery): Promise<Book[]> {
-  const response = await apiClient.get<{ books: Book[] }>('/books', {
+  const response = await apiClient.get<{ books: Book[] }>('/api/v1/books', {
     search: query?.search,
     status: query?.status?.join(','),
-    sort_by: query?.sortBy,
-    sort_order: query?.sortOrder,
+    // Note: sort_by and sort_order are no longer supported by the modern API
+    // Sorting is now handled client-side in the filteredBooks computation
   });
 
   if (response.error) {
@@ -45,7 +45,7 @@ async function fetchBooks(query?: LibraryQuery): Promise<Book[]> {
 }
 
 async function deleteBookApi(bookId: string): Promise<void> {
-  const response = await apiClient.delete(`/books/${bookId}`);
+  const response = await apiClient.delete(`/api/v1/books/${bookId}`);
   
   if (response.error) {
     throw new Error(response.error.message);
@@ -53,7 +53,7 @@ async function deleteBookApi(bookId: string): Promise<void> {
 }
 
 async function fetchBookDetails(bookId: string): Promise<Book> {
-  const response = await apiClient.get<Book>(`/books/${bookId}`);
+  const response = await apiClient.get<Book>(`/api/v1/books/${bookId}/status`);
   
   if (response.error) {
     throw new Error(response.error.message);
