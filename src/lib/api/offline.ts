@@ -221,6 +221,7 @@ export class OfflineManager {
     const response = await fetch(`${request.url}`, {
       method: request.method,
       body: request.body ? JSON.stringify(request.body) : undefined,
+      credentials: 'include', // Important for CORS with credentials
       headers: {
         'Content-Type': 'application/json',
         ...request.headers,

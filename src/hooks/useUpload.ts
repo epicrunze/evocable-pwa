@@ -102,6 +102,7 @@ export function useUpload(options: UploadOptions = {}) {
         method: 'POST',
         body: uploadFormData,
         signal: abortController.signal,
+        credentials: 'include', // Important for CORS with credentials
         headers
       });
 

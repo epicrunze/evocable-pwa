@@ -93,7 +93,9 @@ export class AudioStreamer {
 
       try {
         const chunkUrl = await this.getChunkUrl(chunkIndex);
-        const response = await fetch(chunkUrl);
+        const response = await fetch(chunkUrl, {
+          credentials: 'include' // Important for CORS with credentials
+        });
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -162,7 +164,9 @@ export class AudioStreamer {
       if (!chunkUrl) {
         // Not cached, need to download
         const signedUrl = await this.getChunkUrl(chunkIndex);
-        const response = await fetch(signedUrl);
+        const response = await fetch(signedUrl, {
+          credentials: 'include' // Important for CORS with credentials
+        });
         
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);

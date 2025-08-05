@@ -256,6 +256,7 @@ export class ApiClient {
       const requestOptions: RequestInit = {
         ...interceptedOptions,
         signal: controller.signal,
+        credentials: 'include', // Important for CORS with credentials
         headers: {
           ...this.defaultHeaders,
           ...interceptedOptions.headers,
