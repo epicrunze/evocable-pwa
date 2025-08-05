@@ -10,15 +10,17 @@ import {
   DownloadIcon, 
   LogOutIcon,
   MenuIcon,
-  XIcon
+  XIcon,
+  UserIcon
 } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
   currentPage?: 'library' | 'upload' | 'downloads' | 'player';
+  onShowProfile?: () => void;
 }
 
-export function Layout({ children, currentPage = 'library' }: LayoutProps) {
+export function Layout({ children, currentPage = 'library', onShowProfile }: LayoutProps) {
   const { logout } = useAuthContext();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -70,11 +72,23 @@ export function Layout({ children, currentPage = 'library' }: LayoutProps) {
                 <div className="h-2 w-2 bg-green-400 rounded-full"></div>
                 <span className="text-sm text-gray-600">Connected</span>
               </div>
+              {onShowProfile && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onShowProfile}
+                  className="text-gray-500 hover:text-gray-700"
+                  title="Profile"
+                >
+                  <UserIcon className="h-5 w-5" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleLogout}
                 className="text-gray-500 hover:text-gray-700"
+                title="Sign out"
               >
                 <LogOutIcon className="h-5 w-5" />
               </Button>
@@ -125,6 +139,18 @@ export function Layout({ children, currentPage = 'library' }: LayoutProps) {
                   <div className="h-2 w-2 bg-green-400 rounded-full mr-2"></div>
                   Connected
                 </div>
+                {onShowProfile && (
+                  <button
+                    onClick={() => {
+                      onShowProfile();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex items-center w-full px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-700"
+                  >
+                    <UserIcon className="h-5 w-5 mr-3" />
+                    Profile
+                  </button>
+                )}
                 <button
                   onClick={handleLogout}
                   className="flex items-center w-full px-3 py-2 text-base font-medium text-gray-500 hover:text-gray-700"

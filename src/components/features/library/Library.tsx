@@ -176,7 +176,11 @@ function ProcessingAlert({ processingBooks }: { processingBooks: number }) {
   );
 }
 
-export function Library() {
+interface LibraryProps {
+  onShowProfile?: () => void;
+}
+
+export function Library({ onShowProfile }: LibraryProps = {}) {
   const router = useRouter();
   
   const { 
@@ -221,7 +225,7 @@ export function Library() {
   }, [refetch]);
 
   return (
-    <Layout currentPage="library">
+    <Layout currentPage="library" onShowProfile={onShowProfile}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

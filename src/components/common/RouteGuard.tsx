@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuthContext } from '@/components/features/auth/AuthProvider';
-import { LoginForm } from '@/components/features/auth/LoginForm';
+import { AuthForm } from '@/components/features/auth/AuthForm';
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -22,9 +22,9 @@ export function RouteGuard({ children }: RouteGuardProps) {
     );
   }
 
-  // Show login form if not authenticated
+  // Show auth form if not authenticated
   if (!auth.isAuthenticated) {
-    return <LoginForm />;
+    return <AuthForm />;
   }
 
   // Show protected content if authenticated
