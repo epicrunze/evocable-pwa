@@ -10,36 +10,50 @@ import { EyeIcon, EyeOffIcon } from 'lucide-react';
 export function LoginForm() {
   const { auth, login, clearError } = useAuthContext();
   const [formData, setFormData] = useState({
-    apiKey: '',
+    email: '',
+    password: '',
     remember: false,
   });
-  const [showApiKey, setShowApiKey] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     console.log('🚀 Form Submit Debug:', {
-      apiKey: formData.apiKey.trim(),
+      email: formData.email.trim(),
       remember: formData.remember,
       event: e.type,
     });
     
-    if (!formData.apiKey.trim()) {
-      console.log('❌ Empty API key, stopping submission');
+    if (!formData.email.trim() || !formData.password.trim()) {
+      console.log('❌ Empty email or password, stopping submission');
       return;
     }
 
     console.log('📞 Calling login function...');
     await login({
-      apiKey: formData.apiKey.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
       remember: formData.remember,
     });
   }, [formData, login]);
 
-  const handleApiKeyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
       ...prev,
-      apiKey: e.target.value,
+      email: e.target.value,
+    }));
+    
+    // Clear error when user starts typing
+    if (auth.error) {
+      clearError();
+    }
+  }, [auth.error, clearError]);
+
+  const handlePasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      password: e.target.value,
     }));
     
     // Clear error when user starts typing
@@ -66,34 +80,52 @@ export function LoginForm() {
             Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your API key to access your audiobook library
+            Enter your email and password to access your audiobook library
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="apiKey" className="sr-only">
-                API Key
+              <label htmlFor="email" className="sr-only">
+                Email address
+              </label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="Email address"
+                value={formData.email}
+                onChange={handleEmailChange}
+                disabled={auth.loading}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="sr-only">
+                Password
               </label>
               <div className="relative">
                 <Input
-                  id="apiKey"
-                  name="apiKey"
-                  type={showApiKey ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   required
-                  placeholder="Enter your API key"
-                  value={formData.apiKey}
-                  onChange={handleApiKeyChange}
+                  placeholder="Password"
+                  value={formData.password}
+                  onChange={handlePasswordChange}
                   disabled={auth.loading}
                   className="pr-10"
                 />
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowApiKey(!showApiKey)}
+                  onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showApiKey ? (
+                  {showPassword ? (
                     <EyeOffIcon className="h-5 w-5 text-gray-400" />
                   ) : (
                     <EyeIcon className="h-5 w-5 text-gray-400" />
@@ -118,8 +150,8 @@ export function LoginForm() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-[#129990] hover:text-[#096B68]">
-                  Forgot your API key?
+                <a href="/forgot-password" className="font-medium text-[#129990] hover:text-[#096B68]">
+                  Forgot your password?
                 </a>
               </div>
             </div>
@@ -137,7 +169,7 @@ export function LoginForm() {
           <div>
             <Button
               type="submit"
-              disabled={auth.loading || !formData.apiKey.trim()}
+              disabled={auth.loading || !formData.email.trim() || !formData.password.trim()}
               className="w-full"
               size="lg"
             >
@@ -145,6 +177,15 @@ export function LoginForm() {
             </Button>
           </div>
         </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <a href="/register" className="font-medium text-[#129990] hover:text-[#096B68]">
+              Sign up
+            </a>
+          </p>
+        </div>
 
         <div className="text-center text-xs text-gray-500">
           Version 1.0.0

@@ -589,4 +589,29 @@ export const apiClient = new ApiClient({
 console.log('🔧 API Client Configuration:', {
   apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   env: process.env.NODE_ENV,
-}); 
+});
+
+// Auto-authentication: Load session token from localStorage
+if (typeof window !== 'undefined') {
+  const storedSession = localStorage.getItem('audiobook_session');
+  
+  if (storedSession) {
+    try {
+      const session = JSON.parse(storedSession);
+      // Check if session is still valid
+      const now = new Date().getTime();
+      const expiryTime = new Date(session.expiresAt).getTime();
+      
+      if (expiryTime > now) {
+        console.log('🔑 Loading stored session token');
+        apiClient.setAuthToken(session.token);
+      } else {
+        console.log('⏰ Session expired, removing from storage');
+        localStorage.removeItem('audiobook_session');
+      }
+    } catch (error) {
+      console.error('Failed to parse stored session:', error);
+      localStorage.removeItem('audiobook_session');
+    }
+  }
+} 

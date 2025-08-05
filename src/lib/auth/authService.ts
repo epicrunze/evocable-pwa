@@ -1,5 +1,16 @@
 import { apiClient } from '@/lib/api/client';
-import { AuthError, LoginRequest, LoginResponse, SessionData } from '@/types/auth';
+import { 
+  AuthError, 
+  LoginRequest, 
+  LoginResponse, 
+  SessionData, 
+  RegisterRequest,
+  UserProfile,
+  UpdateProfileRequest,
+  ChangePasswordRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest
+} from '@/types/auth';
 
 const SESSION_KEY = 'audiobook_session';
 const REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes before expiry
@@ -83,9 +94,9 @@ export class AuthService {
 
   async login(request: LoginRequest): Promise<{ success: boolean; error?: AuthError }> {
     try {
-      console.log('🔐 AuthService.login called with:', request);
-      console.log('🌐 Making API call to /auth/login...');
-      const response = await apiClient.post<LoginResponse>('/auth/login', request);
+      console.log('🔐 AuthService.login called with:', { email: request.email, remember: request.remember });
+      console.log('🌐 Making API call to /auth/login/email...');
+      const response = await apiClient.post<LoginResponse>('/auth/login/email', request);
       console.log('📬 AuthService received response:', response);
 
       if (response.error) {
@@ -131,6 +142,47 @@ export class AuthService {
     }
   }
 
+  async register(request: RegisterRequest): Promise<{ success: boolean; error?: AuthError }> {
+    try {
+      console.log('📝 AuthService.register called');
+      const response = await apiClient.post<UserProfile>('/auth/register', request);
+
+      if (response.error) {
+        return {
+          success: false,
+          error: {
+            type: this.mapErrorType(response.error.code),
+            message: response.error.message,
+            canRetry: response.error.retry || false,
+            code: response.error.code,
+          },
+        };
+      }
+
+      if (response.data) {
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        error: {
+          type: 'server',
+          message: 'Registration failed',
+          canRetry: false,
+        },
+      };
+    } catch {
+      return {
+        success: false,
+        error: {
+          type: 'network',
+          message: 'Network error during registration',
+          canRetry: true,
+        },
+      };
+    }
+  }
+
   async logout(): Promise<void> {
     try {
       // Attempt to notify server of logout
@@ -140,6 +192,176 @@ export class AuthService {
       console.warn('Server logout failed');
     } finally {
       this.clearSession();
+    }
+  }
+
+  async getProfile(): Promise<UserProfile | null> {
+    if (!this.sessionData) return null;
+
+    try {
+      const response = await apiClient.get<UserProfile>('/auth/profile');
+      if (response.error) {
+        console.error('Failed to get profile:', response.error);
+        return null;
+      }
+      return response.data || null;
+    } catch (error) {
+      console.error('Profile fetch failed:', error);
+      return null;
+    }
+  }
+
+  async updateProfile(request: UpdateProfileRequest): Promise<{ success: boolean; error?: AuthError }> {
+    if (!this.sessionData) {
+      return {
+        success: false,
+        error: {
+          type: 'forbidden',
+          message: 'Not authenticated',
+          canRetry: false,
+        },
+      };
+    }
+
+    try {
+      const response = await apiClient.put<UserProfile>('/auth/profile', request);
+
+      if (response.error) {
+        return {
+          success: false,
+          error: {
+            type: this.mapErrorType(response.error.code),
+            message: response.error.message,
+            canRetry: response.error.retry || false,
+            code: response.error.code,
+          },
+        };
+      }
+
+      if (response.data) {
+        // Update the user info in session if username changed
+        if (request.username && this.sessionData) {
+          this.sessionData.user.username = request.username;
+          this.saveSession(this.sessionData);
+        }
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        error: {
+          type: 'server',
+          message: 'Profile update failed',
+          canRetry: false,
+        },
+      };
+    } catch {
+      return {
+        success: false,
+        error: {
+          type: 'network',
+          message: 'Network error during profile update',
+          canRetry: true,
+        },
+      };
+    }
+  }
+
+  async changePassword(request: ChangePasswordRequest): Promise<{ success: boolean; error?: AuthError }> {
+    if (!this.sessionData) {
+      return {
+        success: false,
+        error: {
+          type: 'forbidden',
+          message: 'Not authenticated',
+          canRetry: false,
+        },
+      };
+    }
+
+    try {
+      const response = await apiClient.post<{ message: string }>('/auth/change-password', request);
+
+      if (response.error) {
+        return {
+          success: false,
+          error: {
+            type: this.mapErrorType(response.error.code),
+            message: response.error.message,
+            canRetry: response.error.retry || false,
+            code: response.error.code,
+          },
+        };
+      }
+
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: {
+          type: 'network',
+          message: 'Network error during password change',
+          canRetry: true,
+        },
+      };
+    }
+  }
+
+  async forgotPassword(request: ForgotPasswordRequest): Promise<{ success: boolean; error?: AuthError }> {
+    try {
+      const response = await apiClient.post<{ message: string }>('/auth/forgot-password', request);
+
+      if (response.error) {
+        return {
+          success: false,
+          error: {
+            type: this.mapErrorType(response.error.code),
+            message: response.error.message,
+            canRetry: response.error.retry || false,
+            code: response.error.code,
+          },
+        };
+      }
+
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: {
+          type: 'network',
+          message: 'Network error during password reset request',
+          canRetry: true,
+        },
+      };
+    }
+  }
+
+  async resetPassword(request: ResetPasswordRequest): Promise<{ success: boolean; error?: AuthError }> {
+    try {
+      const response = await apiClient.post<{ message: string }>('/auth/reset-password', request);
+
+      if (response.error) {
+        return {
+          success: false,
+          error: {
+            type: this.mapErrorType(response.error.code),
+            message: response.error.message,
+            canRetry: response.error.retry || false,
+            code: response.error.code,
+          },
+        };
+      }
+
+      return { success: true };
+    } catch {
+      return {
+        success: false,
+        error: {
+          type: 'network',
+          message: 'Network error during password reset',
+          canRetry: true,
+        },
+      };
     }
   }
 
@@ -190,12 +412,19 @@ export class AuthService {
 
   private mapErrorType(code: string): AuthError['type'] {
     switch (code) {
+      case '400':
+        return 'validation';
       case '401':
-        return 'invalid_key';
+        return 'invalid_credentials';
       case '403':
         return 'forbidden';
       case '419':
+      case '498': // Token expired
         return 'expired';
+      case '422':
+        return 'validation';
+      case '429':
+        return 'rate_limit';
       case '500':
       case '502':
       case '503':

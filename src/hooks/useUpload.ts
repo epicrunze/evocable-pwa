@@ -91,12 +91,16 @@ export function useUpload(options: UploadOptions = {}) {
     console.log('🔐 Auth token available:', !!apiClient.getAuthToken());
 
     try {
+      // Get auth header from apiClient's defaultHeaders to ensure consistency
+      const authHeader = apiClient.getAuthToken() ? 
+        { 'Authorization': `Bearer ${apiClient.getAuthToken()}` } : {};
+      
       const response = await fetch(uploadUrl, {
         method: 'POST',
         body: uploadFormData,
         signal: abortController.signal,
         headers: {
-          'Authorization': `Bearer ${apiClient.getAuthToken()}`
+          ...authHeader
         }
       });
 
