@@ -322,7 +322,6 @@ export default function BookPlayerPage() {
         <div className="mb-8">
           <AudioPlayer
             bookId={bookId}
-            onBookmarkAdd={handleBookmarkAdd}
             onError={handleAudioError}
           />
         </div>
