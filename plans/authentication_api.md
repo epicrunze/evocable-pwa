@@ -2,6 +2,8 @@
 
 This document describes all authentication-related API endpoints available in the Evocable backend system. The authentication system supports user-based login with email/password credentials and JWT session tokens.
 
+**Status**: ✅ All endpoints are fully functional and have been tested as of August 2025. The system uses Redis-based inter-service communication for reliable and scalable user management.
+
 ## Overview
 
 The authentication system provides:
@@ -42,10 +44,17 @@ Register a new user account with email and password.
 }
 ```
 
+#### Example Working Request
+```bash
+curl -X POST https://server.epicrunze.com/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "testuser", "email": "test@example.com", "password": "TestPassword123!", "confirm_password": "TestPassword123!"}'
+```
+
 #### Request Schema
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `username` | string | Yes | Username (3-50 chars, alphanumeric, underscore, hyphen only) |
+| `username` | string | Yes | Username (3-50 chars, alphanumeric, underscore, hyphen only, automatically converted to lowercase) |
 | `email` | string | Yes | Valid email address |
 | `password` | string | Yes | Strong password (see requirements below) |
 | `confirm_password` | string | Yes | Password confirmation (must match password) |
@@ -89,6 +98,13 @@ Authenticate with email and password to receive a session token.
   "password": "MySecurePass123!",
   "remember": false
 }
+```
+
+#### Example Working Request
+```bash
+curl -X POST https://server.epicrunze.com/auth/login/email \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "password": "TestPassword123!", "remember": false}'
 ```
 
 #### Request Schema
@@ -161,10 +177,25 @@ Authorization: Bearer <session_token>
 }
 ```
 
+#### Example Working Requests
+```bash
+# Update username only
+curl -X PUT https://server.epicrunze.com/auth/profile \
+  -H "Authorization: Bearer <session_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "newusername"}'
+
+# Update email only  
+curl -X PUT https://server.epicrunze.com/auth/profile \
+  -H "Authorization: Bearer <session_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "newemail@example.com"}'
+```
+
 #### Request Schema
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `username` | string | No | New username (3-50 chars, alphanumeric, underscore, hyphen only) |
+| `username` | string | No | New username (3-50 chars, alphanumeric, underscore, hyphen only, automatically converted to lowercase) |
 | `email` | string | No | New email address |
 
 *Note: Both fields are optional. Include only the fields you want to update.*
@@ -237,6 +268,13 @@ Request a password reset token for the given email address.
 {
   "email": "john@example.com"
 }
+```
+
+#### Example Working Request
+```bash
+curl -X POST https://server.epicrunze.com/auth/forgot-password \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com"}'
 ```
 
 #### Response (200 OK)
@@ -388,9 +426,14 @@ Session tokens are JWT tokens with the following claims:
 - **Password reset token**: 15 minutes
 
 ### Password Security
-- Passwords are hashed using secure algorithms before storage
+- Passwords are hashed using bcrypt with secure salt rounds before storage
 - Password strength validation enforced on all password inputs
 - Current password verification required for password changes
+
+### Data Processing
+- **Username normalization**: All usernames are automatically converted to lowercase during registration and updates
+- **Email normalization**: Email addresses are converted to lowercase for consistent storage and lookup
+- **Profile updates**: Only provided fields are updated; omitted fields remain unchanged
 
 ### Rate Limiting
 All authentication endpoints implement rate limiting to prevent brute force attacks and abuse.
