@@ -71,7 +71,7 @@ export default function UploadPage() {
   }, [selectedFile, startUpload]);
 
   const handleBackToLibrary = useCallback(() => {
-    router.push('/library');
+    router.push('/');
   }, [router]);
 
   const handleNewUpload = useCallback(() => {
@@ -81,7 +81,7 @@ export default function UploadPage() {
   }, []);
 
   const handleViewLibrary = useCallback(() => {
-    router.push('/library');
+    router.push('/');
   }, [router]);
 
   return (

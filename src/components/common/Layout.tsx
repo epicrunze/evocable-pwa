@@ -29,7 +29,7 @@ export function Layout({ children, currentPage = 'library', onShowProfile }: Lay
   };
 
   const navigation = [
-    { name: 'Library', href: '/library', key: 'library', icon: BookOpenIcon },
+    { name: 'Library', href: '/', key: 'library', icon: BookOpenIcon },
     { name: 'Upload', href: '/upload', key: 'upload', icon: UploadIcon },
     { name: 'Downloads', href: '/downloads', key: 'downloads', icon: DownloadIcon },
   ];
