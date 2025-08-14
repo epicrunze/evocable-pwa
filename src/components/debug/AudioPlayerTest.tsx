@@ -45,7 +45,7 @@ export function AudioPlayerTest() {
           localStorage.removeItem('audiobook_session');
           addLog('Session expired, removed from storage');
         }
-      } catch (error) {
+      } catch {
         addLog('Invalid session data, cleared');
         localStorage.removeItem('audiobook_session');
       }
@@ -67,16 +67,16 @@ export function AudioPlayerTest() {
         return;
       }
       
-      if (response.data?.token) {
+      if (response.data && typeof response.data === 'object' && 'token' in response.data) {
         // Store the session
         const session = {
-          token: response.data.token,
-          user: response.data.user,
+          token: (response.data as any).token,
+          user: (response.data as any).user,
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
         };
         
         localStorage.setItem('audiobook_session', JSON.stringify(session));
-        apiClient.setAuthToken(response.data.token);
+        apiClient.setAuthToken((response.data as any).token);
         setIsLoggedIn(true);
         addLog('Login SUCCESS - Token stored');
       } else {

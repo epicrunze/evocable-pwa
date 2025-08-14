@@ -24,7 +24,6 @@ export default function BookPlayerPage() {
   const bookId = params.id as string;
   
   const [audioError, setAudioError] = useState<AudioError | null>(null);
-  const [showBookmarkSuccess, setShowBookmarkSuccess] = useState(false);
 
   const { books, loading: booksLoading, error: booksError } = useBooks();
   const book = books.find(b => b.id === bookId);
@@ -34,11 +33,7 @@ export default function BookPlayerPage() {
     setAudioError(error);
   };
 
-  // Handle bookmark creation
-  const handleBookmarkAdd = () => {
-    setShowBookmarkSuccess(true);
-    setTimeout(() => setShowBookmarkSuccess(false), 3000);
-  };
+
 
   // Handle back navigation
   const handleBack = () => {
@@ -288,12 +283,7 @@ export default function BookPlayerPage() {
           </div>
         </div>
 
-        {/* Success Message */}
-        {showBookmarkSuccess && (
-          <Alert variant="success" className="mb-4">
-            <p className="font-medium">Bookmark added successfully!</p>
-          </Alert>
-        )}
+
 
         {/* Audio Error */}
         {audioError && (

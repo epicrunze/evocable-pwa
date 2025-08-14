@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AudioState, AudioError, Bookmark, PlaybackControls } from '@/types/audio';
 import { BookWithChunks } from '@/types/book';
@@ -209,7 +209,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
       setCurrentError(audioError);
       onError?.(audioError);
     }
-  }, [bookId, book, onPlay, onPause, onTimeUpdate, onChunkChange, onError]);
+  }, [bookId, book, onPlay, onPause, onTimeUpdate, onChunkChange, onError, onEnd]);
 
   // Load audio chunk using streamer
   const loadChunk = useCallback(async (chunkIndex: number) => {
@@ -270,23 +270,10 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     loadChunkRef.current = loadChunk;
   }, [loadChunk]);
 
-  // Handle chunk end
-  const handleChunkEnd = useCallback(() => {
-    if (!audioStreamerRef.current) return;
 
-    const streamer = audioStreamerRef.current;
-    const nextChunkIndex = currentChunkRef.current + 1;
-    
-    if (nextChunkIndex < streamer.getTotalChunks()) {
-      loadChunk(nextChunkIndex);
-    } else {
-      setAudioState(prev => prev ? { ...prev, isPlaying: false } : null);
-      onEnd?.();
-    }
-  }, [loadChunk, onEnd]);
 
   // Playback controls
-  const controls: PlaybackControls = {
+  const controls: PlaybackControls = useMemo(() => ({
     play: async () => {
       if (!audioRef.current) {
         console.log('play: No audio element');
@@ -382,19 +369,101 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     },
 
     skipForward: async (seconds: number) => {
-      if (!audioRef.current || !audioState) return;
+      if (!audioRef.current || !audioState || !audioStreamerRef.current) return;
       
       const newTime = audioState.currentTime + seconds;
-      await controls.seek(newTime);
+      // Call seek method directly to avoid circular reference
+      const streamer = audioStreamerRef.current;
+      const book = streamer.getBook();
+      if (!book) return;
+
+      isSeekingRef.current = true;
+      
+      try {
+        // Calculate which chunk contains the target time
+        let targetChunk = 0;
+        let cumulativeTime = 0;
+        
+        for (let i = 0; i < book.chunks.length; i++) {
+          if (cumulativeTime + book.chunks[i].duration_s > newTime) {
+            targetChunk = i;
+            break;
+          }
+          cumulativeTime += book.chunks[i].duration_s;
+        }
+
+        const chunkStartTime = cumulativeTime;
+        const localTime = newTime - chunkStartTime;
+
+        // Load chunk if different from current
+        if (targetChunk !== currentChunkRef.current) {
+          await loadChunk(targetChunk);
+        }
+
+        // Seek to local time in chunk
+        audioRef.current.currentTime = localTime;
+        
+        setAudioState(prev => prev ? {
+          ...prev,
+          currentTime: localTime,
+          currentChunk: targetChunk,
+        } : null);
+
+        isSeekingRef.current = false;
+      } catch (error) {
+        console.error('Skip forward error:', error);
+        isSeekingRef.current = false;
+      }
     },
 
     skipBackward: async (seconds: number) => {
-      if (!audioRef.current || !audioState) return;
+      if (!audioRef.current || !audioState || !audioStreamerRef.current) return;
       
       const newTime = Math.max(0, audioState.currentTime - seconds);
-      await controls.seek(newTime);
+      // Call seek method directly to avoid circular reference
+      const streamer = audioStreamerRef.current;
+      const book = streamer.getBook();
+      if (!book) return;
+
+      isSeekingRef.current = true;
+      
+      try {
+        // Calculate which chunk contains the target time
+        let targetChunk = 0;
+        let cumulativeTime = 0;
+        
+        for (let i = 0; i < book.chunks.length; i++) {
+          if (cumulativeTime + book.chunks[i].duration_s > newTime) {
+            targetChunk = i;
+            break;
+          }
+          cumulativeTime += book.chunks[i].duration_s;
+        }
+
+        const chunkStartTime = cumulativeTime;
+        const localTime = newTime - chunkStartTime;
+
+        // Load chunk if different from current
+        if (targetChunk !== currentChunkRef.current) {
+          await loadChunk(targetChunk);
+        }
+
+        // Seek to local time in chunk
+        audioRef.current.currentTime = localTime;
+        
+        setAudioState(prev => prev ? {
+          ...prev,
+          currentTime: localTime,
+          currentChunk: targetChunk,
+        } : null);
+
+        isSeekingRef.current = false;
+      } catch (error) {
+        console.error('Skip backward error:', error);
+        isSeekingRef.current = false;
+      }
     },
-  };
+  }), [audioState, loadChunk, onError]);
 
   // Initialize audio when book data and bookId are available
   useEffect(() => {
@@ -521,7 +590,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     audioState,
     controls,
     bookmarks: localBookmarks, // Use local bookmarks for now
-    isLoading: bookLoading || (bookId && !isInitialized),
+    isLoading: bookLoading || Boolean(bookId && !isInitialized),
     error: bookError ? { 
       type: 'network', 
       message: 'Failed to load book', 
