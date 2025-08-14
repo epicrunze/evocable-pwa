@@ -54,6 +54,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
   const currentChunkRef = useRef<number>(0);
   const isSeekingRef = useRef(false);
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
+  const loadChunkRef = useRef<((chunkIndex: number) => Promise<void>) | null>(null);
 
   // Fetch book data with chunks
   const { data: book, isLoading: bookLoading, error: bookError } = useQuery({
@@ -87,24 +88,33 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
 
   // Initialize audio element and streamer
   const initializeAudio = useCallback(async () => {
-    if (!bookId) return;
+    if (!bookId || !book) {
+      console.log('initializeAudio: Missing bookId or book data');
+      return;
+    }
 
     try {
+      console.log('initializeAudio: Starting initialization', { bookId, chunksCount: book.chunks?.length });
+
       // Initialize audio streamer
       const streamer = new AudioStreamer(bookId, {
         onError: (error: AudioError) => {
+          console.error('AudioStreamer error:', error);
           setCurrentError(error);
           onError?.(error);
         },
         onChunkChange: (chunkIndex: number) => {
+          console.log('Chunk changed to:', chunkIndex);
           currentChunkRef.current = chunkIndex;
           onChunkChange?.(chunkIndex);
         },
         prefetchSize: 5,
       });
 
+      console.log('initializeAudio: Initializing streamer...');
       await streamer.initialize();
       audioStreamerRef.current = streamer;
+      console.log('initializeAudio: Streamer initialized successfully');
 
       // Initialize audio element
       const audio = new Audio();
@@ -113,10 +123,12 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
 
       // Set up event listeners
       audio.addEventListener('loadstart', () => {
+        console.log('Audio loadstart event');
         setAudioState(prev => prev ? { ...prev, isLoading: true } : null);
       });
 
       audio.addEventListener('loadedmetadata', () => {
+        console.log('Audio loadedmetadata event, duration:', audio.duration);
         setAudioState(prev => prev ? { 
           ...prev, 
           duration: audio.duration,
@@ -137,18 +149,40 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
       });
 
       audio.addEventListener('play', () => {
+        console.log('Audio play event');
         setAudioState(prev => prev ? { ...prev, isPlaying: true } : null);
         onPlay?.();
       });
 
       audio.addEventListener('pause', () => {
+        console.log('Audio pause event');
         setAudioState(prev => prev ? { ...prev, isPlaying: false } : null);
         onPause?.();
       });
 
-      audio.addEventListener('ended', () => {
-        handleChunkEnd();
-      });
+      const endedHandler = () => {
+        console.log('Audio ended event');
+        // Handle chunk end inline to avoid circular dependency
+        if (!audioStreamerRef.current || !loadChunkRef.current) return;
+
+        const streamer = audioStreamerRef.current;
+        const nextChunkIndex = currentChunkRef.current + 1;
+        
+        if (nextChunkIndex < streamer.getTotalChunks()) {
+          console.log('Loading next chunk:', nextChunkIndex);
+          // Call loadChunk async via ref
+          loadChunkRef.current(nextChunkIndex).catch(error => {
+            console.error('Failed to load next chunk:', error);
+            setAudioState(prev => prev ? { ...prev, isPlaying: false } : null);
+          });
+        } else {
+          console.log('Reached end of book');
+          setAudioState(prev => prev ? { ...prev, isPlaying: false } : null);
+          onEnd?.();
+        }
+      };
+
+      audio.addEventListener('ended', endedHandler);
 
       audio.addEventListener('error', (event) => {
         console.error('Audio element error:', event);
@@ -164,17 +198,18 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
 
       audioRef.current = audio;
       setIsInitialized(true);
+      console.log('initializeAudio: Audio element initialized successfully');
     } catch (error) {
       console.error('Failed to initialize audio:', error);
       const audioError: AudioError = {
         type: 'network',
-        message: 'Failed to initialize audio system',
+        message: error instanceof Error ? error.message : 'Failed to initialize audio system',
         recoverable: true,
       };
       setCurrentError(audioError);
       onError?.(audioError);
     }
-  }, [bookId, onPlay, onPause, onTimeUpdate, onChunkChange, onError]);
+  }, [bookId, book, onPlay, onPause, onTimeUpdate, onChunkChange, onError]);
 
   // Load audio chunk using streamer
   const loadChunk = useCallback(async (chunkIndex: number) => {
@@ -229,6 +264,11 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
       onError?.(audioError);
     }
   }, [onError]);
+
+  // Update loadChunk ref whenever it changes
+  useEffect(() => {
+    loadChunkRef.current = loadChunk;
+  }, [loadChunk]);
 
   // Handle chunk end
   const handleChunkEnd = useCallback(() => {
@@ -356,43 +396,40 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     },
   };
 
-  // Initialize audio state
+  // Initialize audio when book data and bookId are available
   useEffect(() => {
-    if (bookId && !audioState) {
-      console.log('Initializing audio state for bookId:', bookId);
+    if (bookId && book && !isInitialized) {
+      console.log('Initializing audio system for bookId:', bookId, 'with book data');
+      
+      // Initialize audio state first
       setAudioState({
         bookId,
         currentChunk: 0,
         currentTime: 0,
         duration: 0,
         isPlaying: false,
-        isLoading: false,
+        isLoading: true, // Set loading true during initialization
         volume: 1,
         playbackRate: 1,
         bufferedRanges: null,
         error: currentError || undefined,
       });
-    }
-  }, [bookId, audioState, currentError]);
 
-  // Initialize audio when bookId changes
-  useEffect(() => {
-    if (bookId && !isInitialized) {
-      console.log('Initializing audio system for bookId:', bookId);
+      // Then initialize the audio system
       initializeAudio();
     }
-  }, [bookId, isInitialized, initializeAudio]);
+  }, [bookId, book, isInitialized, currentError, initializeAudio]);
 
-  // Load first chunk when audio is initialized
+  // Load first chunk when audio is initialized and streamer is ready
   useEffect(() => {
-    if (isInitialized && audioStreamerRef.current && audioRef.current) {
+    if (isInitialized && audioStreamerRef.current && audioRef.current && book && book.chunks?.length > 0) {
       const streamer = audioStreamerRef.current;
       if (streamer.isReady()) {
         console.log('Loading first chunk');
         loadChunk(0);
       }
     }
-  }, [isInitialized, loadChunk]);
+  }, [isInitialized, book, loadChunk]);
 
   // Auto-play if enabled
   useEffect(() => {
@@ -484,13 +521,13 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     audioState,
     controls,
     bookmarks: localBookmarks, // Use local bookmarks for now
-    isLoading: bookLoading || !isInitialized,
+    isLoading: bookLoading || (bookId && !isInitialized),
     error: bookError ? { 
       type: 'network', 
       message: 'Failed to load book', 
       recoverable: true 
     } : currentError,
-    book: audioStreamerRef.current?.getBook() || book || null,
+    book: book || null, // Use the book from the query directly
     addBookmark,
     removeBookmark,
     seekToBookmark,

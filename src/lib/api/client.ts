@@ -583,12 +583,12 @@ export class ApiClient {
 
 // Create singleton instance
 export const apiClient = new ApiClient({
-  apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL || 'https://server.epicrunze.com',
 });
 
 // Debug logging for API client configuration
 console.log('🔧 API Client Configuration:', {
-  apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL || 'https://server.epicrunze.com',
   env: process.env.NODE_ENV,
 });
 
