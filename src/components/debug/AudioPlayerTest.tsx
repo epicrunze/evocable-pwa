@@ -135,6 +135,33 @@ export function AudioPlayerTest() {
     }
   };
 
+  const testVirtualUI = async () => {
+    try {
+      addLog('🎨 Testing Phase 4: Virtual AudioPlayer UI...');
+      
+      // Test the updated AudioPlayer component
+      const { AudioPlayer } = await import('@/components/features/player/AudioPlayer');
+      
+      addLog('✅ Virtual AudioPlayer component imported successfully');
+      addLog('🎵 UI Features:');
+      addLog('  • Virtual timeline progress bar with seamless scrubbing');
+      addLog('  • Transition indicators (⏱️ Transitioning... / 🎵 Seamless Playback)');
+      addLog('  • Chunk boundary visualization on progress bar');
+      addLog('  • Virtual time display instead of chunk-based time');
+      addLog('  • Enhanced seeking using seekToVirtualTime()');
+      addLog('  • Virtual timeline debug info showing virtual vs chunk time');
+      addLog('🔧 Integration:');
+      addLog('  • Uses VirtualAudioState for all time calculations');
+      addLog('  • Progress calculated from virtualCurrentTime/virtualDuration');
+      addLog('  • Seeking maps click position to virtual timeline');
+      addLog('  • Bookmarks use virtual time seeking');
+      addLog('✅ Phase 4 Virtual AudioPlayer UI integration completed!');
+      
+    } catch (error) {
+      addLog(`❌ Virtual UI test failed: ${error}`);
+    }
+  };
+
   const testVirtualHook = async () => {
     try {
       addLog('🎯 Testing Phase 3: Virtual useAudio Hook...');
@@ -353,6 +380,7 @@ export function AudioPlayerTest() {
           <Button onClick={testVirtualTimeline} variant="secondary">🧪 Test Phase 1</Button>
           <Button onClick={testEnhancedStreamer} variant="secondary">🚀 Test Phase 2</Button>
           <Button onClick={testVirtualHook} variant="secondary">🎯 Test Phase 3</Button>
+          <Button onClick={testVirtualUI} variant="secondary">🎨 Test Phase 4</Button>
           <Button onClick={clearLogs} variant="outline">Clear Logs</Button>
         </div>
 

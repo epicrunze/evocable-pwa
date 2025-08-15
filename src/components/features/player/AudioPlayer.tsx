@@ -71,13 +71,13 @@ export function AudioPlayer({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   }, []);
 
-  // Handle seek
+  // Handle seek with virtual timeline
   const handleSeek = useCallback((percentage: number) => {
-    if (!audioState || !book) return;
+    if (!audioState) return;
     
-    const newTime = (percentage / 100) * book.total_duration_s;
-    controls.seek(newTime);
-  }, [audioState, book, controls]);
+    const newVirtualTime = (percentage / 100) * audioState.virtualDuration;
+    controls.seekToVirtualTime(newVirtualTime);
+  }, [audioState, controls]);
 
   // Handle bookmark creation
   const handleCreateBookmark = useCallback(async () => {
@@ -198,8 +198,9 @@ export function AudioPlayer({
     );
   }
 
-  const currentProgress = book.total_duration_s > 0 
-    ? (audioState.currentTime / book.total_duration_s) * 100 
+  // Calculate progress using virtual timeline
+  const currentProgress = audioState.virtualDuration > 0 
+    ? (audioState.virtualCurrentTime / audioState.virtualDuration) * 100 
     : 0;
 
   const VolumeIconComponent = audioState.volume === 0 ? VolumeXIcon : 
@@ -216,11 +217,20 @@ export function AudioPlayer({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Badge variant="secondary">
-              Chunk {audioState.currentChunk + 1} of {book.chunks.length}
+              {audioState.isTransitioning ? (
+                <>⏱️ Transitioning...</>
+              ) : (
+                <>🎵 Seamless Playback</>
+              )}
             </Badge>
+            {book.chunks && (
+              <Badge variant="outline" className="text-xs">
+                Chunk {audioState.currentChunk + 1}/{book.chunks.length}
+              </Badge>
+            )}
           </div>
           <span className="text-sm text-gray-500">
-            {formatTime(audioState.currentTime)} / {formatTime(book.total_duration_s)}
+            {formatTime(audioState.virtualCurrentTime)} / {formatTime(audioState.virtualDuration)}
           </span>
         </div>
       </div>
@@ -228,18 +238,47 @@ export function AudioPlayer({
       {/* Main Progress Bar */}
       <div className="px-6 pb-4">
         <div className="relative">
-          <Progress 
-            value={currentProgress} 
-            className="h-2 cursor-pointer"
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const percentage = ((e.clientX - rect.left) / rect.width) * 100;
-              handleSeek(percentage);
-            }}
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>{formatTime(audioState.currentTime)}</span>
-            <span>{formatTime(book.total_duration_s)}</span>
+          {/* Enhanced progress bar with transition indicator */}
+          <div className="relative">
+            <Progress 
+              value={currentProgress} 
+              className={`h-3 cursor-pointer transition-all duration-200 ${
+                audioState.isTransitioning ? 'animate-pulse' : ''
+              }`}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const percentage = ((e.clientX - rect.left) / rect.width) * 100;
+                handleSeek(percentage);
+              }}
+            />
+            
+            {/* Chunk boundaries visualization */}
+            {audioState.chunkOffsets && audioState.virtualDuration > 0 && (
+              <div className="absolute top-0 h-3 w-full pointer-events-none">
+                {audioState.chunkOffsets.slice(1).map((offset, index) => {
+                  const position = (offset / audioState.virtualDuration) * 100;
+                  return (
+                    <div
+                      key={index}
+                      className="absolute top-0 w-px h-full bg-gray-300 dark:bg-gray-600 opacity-50"
+                      style={{ left: `${position}%` }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <span>{formatTime(audioState.virtualCurrentTime)}</span>
+            <span>{formatTime(audioState.virtualDuration)}</span>
+          </div>
+          
+          {/* Virtual Timeline Debug Info */}
+          <div className="flex justify-between text-xs text-gray-400 mt-1">
+            <span>Virtual: {audioState.virtualCurrentTime.toFixed(1)}s</span>
+            <span>Chunk {audioState.currentChunk + 1}: {audioState.chunkLocalTime.toFixed(1)}s</span>
+            <span>{audioState.chunkOffsets.length} chunks</span>
           </div>
         </div>
       </div>
@@ -383,7 +422,7 @@ export function AudioPlayer({
                 className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               >
                 <button
-                  onClick={() => controls.seek(bookmark.time)}
+                  onClick={() => controls.seekToVirtualTime(bookmark.time)}
                   className="flex-1 text-left text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   {bookmark.title}
