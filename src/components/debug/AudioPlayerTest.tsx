@@ -123,6 +123,21 @@ export function AudioPlayerTest() {
       
       if (bookResult.data) {
         addLog(`Book found: ${bookResult.data.title} (${bookResult.data.chunks?.length || 0} chunks)`);
+        
+        // Test Virtual Timeline
+        addLog('Testing Virtual Timeline...');
+        const { VirtualTimelineManager } = await import('@/lib/audio/virtual-timeline');
+        const timeline = new VirtualTimelineManager();
+        
+        timeline.initialize(bookResult.data.chunks);
+        addLog(`Timeline initialized: ${timeline.getTotalDuration().toFixed(2)}s total`);
+        
+        // Test some virtual time calculations
+        const testTimes = [0, 9.42, 18.0, 36.0];
+        testTimes.forEach(virtualTime => {
+          const { chunkIndex, localTime } = timeline.getChunkPosition(virtualTime);
+          addLog(`Virtual ${virtualTime}s -> Chunk ${chunkIndex}, Local ${localTime.toFixed(2)}s`);
+        });
       }
       
       // Test audio API
