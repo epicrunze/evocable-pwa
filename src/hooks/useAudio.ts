@@ -96,7 +96,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     try {
       console.log('initializeAudio: Starting initialization', { bookId, chunksCount: book.chunks?.length });
 
-      // Initialize audio streamer
+      // Initialize audio streamer with seamless playback callbacks
       const streamer = new AudioStreamer(bookId, {
         onError: (error: AudioError) => {
           console.error('AudioStreamer error:', error);
@@ -108,7 +108,19 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
           currentChunkRef.current = chunkIndex;
           onChunkChange?.(chunkIndex);
         },
+        onVirtualTimeUpdate: (virtualTime: number, duration: number) => {
+          // This will be used later when we integrate with virtual timeline
+          console.log('Virtual time update:', virtualTime, '/', duration);
+        },
+        onSeamlessTransition: (fromChunk: number, toChunk: number) => {
+          console.log('Seamless transition:', fromChunk, '->', toChunk);
+        },
+        onPreloadProgress: (chunkIndex: number, progress: number) => {
+          console.log(`Preloading chunk ${chunkIndex}: ${progress}%`);
+        },
+      }, {
         prefetchSize: 5,
+        transitionThreshold: 1.0,
       });
 
       console.log('initializeAudio: Initializing streamer...');

@@ -135,6 +135,89 @@ export function AudioPlayerTest() {
     }
   };
 
+  const testEnhancedStreamer = async () => {
+    try {
+      addLog('🚀 Testing Phase 2: Enhanced Audio Streamer...');
+      
+      // Get book data first
+      const { booksApi } = await import('@/lib/api/books');
+      const bookResult = await booksApi.getBookWithChunks(bookId);
+      
+      if (bookResult.error || !bookResult.data) {
+        addLog(`❌ Cannot test streamer: ${bookResult.error?.message || 'No book data'}`);
+        return;
+      }
+      
+      const book = bookResult.data;
+      addLog(`📖 Book: "${book.title}" (${book.chunks.length} chunks, ${book.total_duration_s.toFixed(2)}s)`);
+      
+      // Initialize enhanced audio streamer
+      const { AudioStreamer } = await import('@/lib/audio-streamer');
+      
+      const streamer = new AudioStreamer(bookId, {
+        onError: (error) => addLog(`❌ Streamer Error: ${error.message}`),
+        onChunkChange: (chunkIndex) => addLog(`🔄 Chunk changed: ${chunkIndex}`),
+        onVirtualTimeUpdate: (virtualTime, duration) => 
+          addLog(`⏱️  Virtual time: ${virtualTime.toFixed(2)}s / ${duration.toFixed(2)}s`),
+        onSeamlessTransition: (fromChunk, toChunk) => 
+          addLog(`🔀 Seamless transition: chunk ${fromChunk} → ${toChunk}`),
+        onPreloadProgress: (chunkIndex, progress) => 
+          addLog(`📥 Preloading chunk ${chunkIndex}: ${progress}%`),
+      }, {
+        prefetchSize: 3,
+        transitionThreshold: 0.5, // 0.5s for faster testing
+      });
+      
+      addLog('🔧 Initializing enhanced streamer...');
+      await streamer.initialize();
+      addLog('✅ Enhanced streamer initialized successfully!');
+      
+      // Test virtual timeline methods
+      addLog('📏 Testing virtual timeline integration...');
+      const timeline = streamer.getVirtualTimeline();
+      const totalDuration = timeline.getTotalDuration();
+      addLog(`📊 Total virtual duration: ${totalDuration.toFixed(2)}s`);
+      
+      // Test chunk loading and virtual time
+      addLog('🔽 Testing chunk loading...');
+      const firstChunkUrl = await streamer.loadChunk(0);
+      addLog(`✅ First chunk loaded: ${firstChunkUrl.slice(0, 50)}...`);
+      
+      const currentVirtualTime = streamer.getCurrentVirtualTime();
+      addLog(`⏰ Current virtual time: ${currentVirtualTime.toFixed(2)}s`);
+      
+      // Test seek functionality
+      addLog('🎯 Testing virtual time seeking...');
+      await streamer.seekToVirtualTime(9.42); // Should go to chunk 3
+      const seekResult = streamer.getCurrentVirtualTime();
+      addLog(`✅ Seek to 9.42s result: ${seekResult.toFixed(2)}s (chunk ${streamer.getCurrentChunk()})`);
+      
+      // Test preloading
+      addLog('📥 Testing preloading...');
+      await streamer.preloadChunk(5);
+      addLog('✅ Chunk 5 preloaded successfully');
+      
+      // Test near chunk end detection
+      const isNear = streamer.isNearChunkEnd(1.0);
+      addLog(`🔚 Near chunk end (1s threshold): ${isNear ? 'YES' : 'NO'}`);
+      
+      // Test audio element access
+      const activeAudio = streamer.getActiveAudioElement();
+      if (activeAudio) {
+        addLog(`🎵 Active audio element: ${activeAudio.constructor.name} (src: ${activeAudio.src ? 'loaded' : 'empty'})`);
+      }
+      
+      // Cleanup
+      streamer.cleanup();
+      addLog('🧹 Streamer cleaned up');
+      
+      addLog('✅ Phase 2 Enhanced Audio Streamer tests completed!');
+      
+    } catch (error) {
+      addLog(`❌ Enhanced streamer test failed: ${error}`);
+    }
+  };
+
   const testVirtualTimeline = async () => {
     try {
       addLog('🧪 Testing Phase 1: Virtual Timeline...');
@@ -250,6 +333,7 @@ export function AudioPlayerTest() {
           />
           <Button onClick={testApiDirectly}>Test API Directly</Button>
           <Button onClick={testVirtualTimeline} variant="secondary">🧪 Test Phase 1</Button>
+          <Button onClick={testEnhancedStreamer} variant="secondary">🚀 Test Phase 2</Button>
           <Button onClick={clearLogs} variant="outline">Clear Logs</Button>
         </div>
 
