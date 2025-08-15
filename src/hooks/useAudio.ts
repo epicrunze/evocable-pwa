@@ -97,112 +97,83 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
       return;
     }
 
-    try {
-      console.log('initializeAudio: Starting initialization', { bookId, chunksCount: book.chunks?.length });
+    // Check if we're in browser environment for gapless player
+    if (typeof window === 'undefined') {
+      console.log('initializeAudio: Skipping initialization on server side');
+      return;
+    }
 
-      // Initialize audio streamer with seamless playback callbacks
-      const streamer = new AudioStreamer(bookId, {
+    try {
+      console.log('initializeAudio: Starting Gapless-5 initialization', { bookId, chunksCount: book.chunks?.length });
+
+      // Initialize Gapless-5 streamer for seamless playback
+      const gaplessStreamer = new GaplessAudioStreamer(bookId, {
         onError: (error: AudioError) => {
-          console.error('AudioStreamer error:', error);
+          console.error('GaplessAudioStreamer error:', error);
           setCurrentError(error);
           onError?.(error);
         },
         onChunkChange: (chunkIndex: number) => {
-          console.log('Chunk changed to:', chunkIndex);
+          console.log('Gapless chunk changed to:', chunkIndex);
           currentChunkRef.current = chunkIndex;
           onChunkChange?.(chunkIndex);
+          
+          // Update state with new chunk
+          setAudioState(prev => prev ? { ...prev, currentChunk: chunkIndex } : null);
         },
         onVirtualTimeUpdate: (virtualTime: number, duration: number) => {
           // Update virtual timeline state
           setAudioState(prev => {
             if (!prev) return null;
-            const activeAudio = streamer.getActiveAudioElement();
+            const chunkOffsets = gaplessStreamer.getVirtualTimeline().getChunkOffsets();
+            const currentChunk = gaplessStreamer.getCurrentChunk();
+            const chunkStartTime = chunkOffsets[currentChunk] || 0;
+            const chunkLocalTime = virtualTime - chunkStartTime;
+            
             return {
               ...prev,
               virtualCurrentTime: virtualTime,
               virtualDuration: duration,
-              currentTime: activeAudio?.currentTime || 0,
-              chunkLocalTime: activeAudio?.currentTime || 0,
-              duration: duration, // Total virtual duration
+              currentTime: virtualTime, // For gapless, virtual time IS the current time
+              chunkLocalTime: Math.max(0, chunkLocalTime),
+              duration: duration,
+              currentChunk: currentChunk,
             };
           });
           
           // Call the original onTimeUpdate callback with virtual time
           onTimeUpdate?.(virtualTime);
         },
-        onSeamlessTransition: (fromChunk: number, toChunk: number) => {
-          console.log('Seamless transition:', fromChunk, '->', toChunk);
-          setAudioState(prev => prev ? { ...prev, isTransitioning: false } : null);
+        onPlay: () => {
+          console.log('Gapless player started');
+          setAudioState(prev => prev ? { ...prev, isPlaying: true } : null);
+          onPlay?.();
         },
-        onPreloadProgress: (chunkIndex: number, progress: number) => {
-          console.log(`Preloading chunk ${chunkIndex}: ${progress}%`);
+        onPause: () => {
+          console.log('Gapless player paused');
+          setAudioState(prev => prev ? { ...prev, isPlaying: false } : null);
+          onPause?.();
+        },
+        onEnd: () => {
+          console.log('Gapless player ended');
+          setAudioState(prev => prev ? { ...prev, isPlaying: false } : null);
+          onEnd?.();
         },
       }, {
         prefetchSize: 5,
-        transitionThreshold: 1.0,
+        crossfade: 100,
       });
 
-      console.log('initializeAudio: Initializing streamer...');
-      await streamer.initialize();
-      audioStreamerRef.current = streamer;
-      console.log('initializeAudio: Streamer initialized successfully');
+      console.log('initializeAudio: Initializing gapless streamer...');
+      await gaplessStreamer.initialize();
+      gaplessStreamerRef.current = gaplessStreamer;
+      console.log('initializeAudio: Gapless streamer initialized successfully');
 
-      // Initialize virtual timeline state
-      const timeline = streamer.getVirtualTimeline();
+            // Initialize virtual timeline state  
+      const timeline = gaplessStreamer.getVirtualTimeline();
       const chunkOffsets = timeline.getChunkOffsets();
-
-      // Get active audio element from streamer for minimal event tracking
-      const activeAudio = streamer.getActiveAudioElement();
-      if (activeAudio) {
-        audioRef.current = activeAudio;
-
-        // Set up minimal event listeners for play/pause state tracking
-        activeAudio.addEventListener('loadstart', () => {
-          console.log('Virtual audio loadstart event');
-          setAudioState(prev => prev ? { ...prev, isLoading: true } : null);
-        });
-
-        activeAudio.addEventListener('loadedmetadata', () => {
-          console.log('Virtual audio loadedmetadata event, duration:', activeAudio.duration);
-          // Duration is now managed by virtual timeline, not individual chunks
-          setAudioState(prev => prev ? { 
-            ...prev, 
-            isLoading: false 
-          } : null);
-        });
-
-        // Time update is now handled by virtual timeline callbacks
-        // No need for manual timeupdate listener
-
-        activeAudio.addEventListener('play', () => {
-          console.log('Virtual audio play event');
-          setAudioState(prev => prev ? { ...prev, isPlaying: true } : null);
-          onPlay?.();
-        });
-
-        activeAudio.addEventListener('pause', () => {
-          console.log('Virtual audio pause event');
-          setAudioState(prev => prev ? { ...prev, isPlaying: false } : null);
-          onPause?.();
-        });
-
-        activeAudio.addEventListener('ended', () => {
-          // Ended events are now handled by the streamer's seamless transition logic
-          console.log('Virtual audio chunk ended - streamer handling seamless transition');
-        });
-
-        activeAudio.addEventListener('error', (event) => {
-          console.error('Virtual audio error:', event);
-          const error: AudioError = {
-            type: 'playback',
-            message: 'Audio playback error',
-            recoverable: true,
-            chunk: currentChunkRef.current,
-          };
-          setCurrentError(error);
-          onError?.(error);
-        });
-      }
+      
+      // Gapless-5 manages its own audio elements - no need for manual event setup
       
       // Initialize virtual audio state
       setAudioState({
@@ -224,7 +195,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
       });
       
       setIsInitialized(true);
-      console.log('initializeAudio: Virtual audio state initialized successfully');
+      console.log('initializeAudio: Gapless audio system initialized successfully');
     } catch (error) {
       console.error('Failed to initialize audio:', error);
       const audioError: AudioError = {
@@ -301,17 +272,17 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
   // Playback controls
   const controls: VirtualPlaybackControls = useMemo(() => ({
     play: async () => {
-      if (!audioRef.current) {
-        console.log('play: No audio element');
+      if (!gaplessStreamerRef.current) {
+        console.log('play: No gapless streamer');
         return;
       }
       
       try {
-        console.log('play: Attempting to play audio');
-        await audioRef.current.play();
-        console.log('play: Audio started successfully');
+        console.log('play: Attempting to play gapless audio');
+        await gaplessStreamerRef.current.play();
+        console.log('play: Gapless audio started successfully');
       } catch (error) {
-        console.error('play: Error starting playback', error);
+        console.error('play: Error starting gapless playback', error);
         const audioError: AudioError = {
           type: 'playback',
           message: 'Failed to start playback',
@@ -323,40 +294,30 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     },
 
     pause: async () => {
-      if (!audioRef.current) return;
-      audioRef.current.pause();
+      if (!gaplessStreamerRef.current) return;
+      await gaplessStreamerRef.current.pause();
     },
 
     seek: async (time: number) => {
-      // Legacy seek method - use streamer directly to avoid circular reference
-      if (!audioStreamerRef.current) return;
-      await audioStreamerRef.current.seekToVirtualTime(time);
+      // Use gapless streamer for seamless seeking
+      if (!gaplessStreamerRef.current) return;
+      await gaplessStreamerRef.current.seekToVirtualTime(time);
     },
 
     // Virtual timeline seeking methods
     seekToVirtualTime: async (virtualTime: number) => {
-      if (!audioStreamerRef.current) return;
+      if (!gaplessStreamerRef.current) return;
 
-      const streamer = audioStreamerRef.current;
+      const gaplessStreamer = gaplessStreamerRef.current;
       isSeekingRef.current = true;
       
       try {
         console.log('seekToVirtualTime: Seeking to virtual time:', virtualTime);
-        await streamer.seekToVirtualTime(virtualTime);
+        await gaplessStreamer.seekToVirtualTime(virtualTime);
         
-        // Update audio state with new virtual position
-        const newVirtualTime = streamer.getCurrentVirtualTime();
-        const activeAudio = streamer.getActiveAudioElement();
-        
-        setAudioState(prev => prev ? {
-          ...prev,
-          virtualCurrentTime: newVirtualTime,
-          currentTime: activeAudio?.currentTime || 0,
-          chunkLocalTime: activeAudio?.currentTime || 0,
-        } : null);
-
+        // Gapless streamer handles state updates via callbacks
         isSeekingRef.current = false;
-        console.log('seekToVirtualTime: Seek completed to:', newVirtualTime);
+        console.log('seekToVirtualTime: Gapless seek completed');
       } catch (error) {
         console.error('Virtual seek error:', error);
         isSeekingRef.current = false;
@@ -371,45 +332,46 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     },
 
     getCurrentVirtualTime: () => {
-      if (!audioStreamerRef.current) return 0;
-      return audioStreamerRef.current.getCurrentVirtualTime();
+      if (!gaplessStreamerRef.current) return 0;
+      return gaplessStreamerRef.current.getCurrentVirtualTime();
     },
 
     getTotalVirtualDuration: () => {
-      if (!audioStreamerRef.current) return 0;
-      return audioStreamerRef.current.getTotalVirtualDuration();
+      if (!gaplessStreamerRef.current) return 0;
+      return gaplessStreamerRef.current.getTotalVirtualDuration();
     },
 
     setVolume: async (volume: number) => {
-      if (!audioRef.current) return;
+      if (!gaplessStreamerRef.current) return;
       
-      audioRef.current.volume = Math.max(0, Math.min(1, volume));
+      gaplessStreamerRef.current.setVolume(Math.max(0, Math.min(1, volume)));
       setAudioState(prev => prev ? { ...prev, volume } : null);
     },
 
     setPlaybackRate: async (rate: number) => {
-      if (!audioRef.current) return;
+      if (!gaplessStreamerRef.current) return;
       
-      audioRef.current.playbackRate = Math.max(0.25, Math.min(4, rate));
+      gaplessStreamerRef.current.setPlaybackRate(Math.max(0.25, Math.min(4, rate)));
       setAudioState(prev => prev ? { ...prev, playbackRate: rate } : null);
     },
 
     skipForward: async (seconds: number) => {
-      if (!audioStreamerRef.current || !audioState) return;
+      if (!gaplessStreamerRef.current || !audioState) return;
       
-      const currentVirtualTime = audioStreamerRef.current.getCurrentVirtualTime();
-      const newVirtualTime = currentVirtualTime + seconds;
+      const currentVirtualTime = gaplessStreamerRef.current.getCurrentVirtualTime();
+      const totalDuration = gaplessStreamerRef.current.getTotalVirtualDuration();
+      const newVirtualTime = Math.min(currentVirtualTime + seconds, totalDuration);
       
-      await audioStreamerRef.current.seekToVirtualTime(newVirtualTime);
+      await gaplessStreamerRef.current.seekToVirtualTime(newVirtualTime);
     },
 
     skipBackward: async (seconds: number) => {
-      if (!audioStreamerRef.current || !audioState) return;
+      if (!gaplessStreamerRef.current || !audioState) return;
       
-      const currentVirtualTime = audioStreamerRef.current.getCurrentVirtualTime();
+      const currentVirtualTime = gaplessStreamerRef.current.getCurrentVirtualTime();
       const newVirtualTime = Math.max(0, currentVirtualTime - seconds);
       
-      await audioStreamerRef.current.seekToVirtualTime(newVirtualTime);
+      await gaplessStreamerRef.current.seekToVirtualTime(newVirtualTime);
     },
   }), [audioState, loadChunk, onError]);
 
@@ -523,15 +485,19 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
 
   // Cleanup function
   const cleanup = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.removeEventListener('loadstart', () => {});
-      audioRef.current = null;
+    if (gaplessStreamerRef.current) {
+      gaplessStreamerRef.current.cleanup();
+      gaplessStreamerRef.current = null;
     }
 
+    // Clean up old streamer ref if it exists (migration cleanup)
     if (audioStreamerRef.current) {
       audioStreamerRef.current.cleanup();
       audioStreamerRef.current = null;
+    }
+
+    if (audioRef.current) {
+      audioRef.current = null;
     }
 
     setAudioState(null);

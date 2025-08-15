@@ -139,6 +139,12 @@ export function AudioPlayerTest() {
     try {
       addLog('🎵 Testing Gapless-5 Integration...');
       
+      // Check if we're in browser environment
+      if (typeof window === 'undefined') {
+        addLog('❌ Gapless player can only be tested in browser environment');
+        return;
+      }
+      
       // Get book data first
       const { booksApi } = await import('@/lib/api/books');
       const bookResult = await booksApi.getBookWithChunks(bookId);

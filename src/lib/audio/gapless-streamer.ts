@@ -1,9 +1,11 @@
-import { Gapless5 } from '@regosen/gapless-5';
 import { AudioError } from '@/types/audio';
 import { VirtualTimelineManager } from './virtual-timeline';
 import { audioApi } from '@/lib/api/audio';
 import { booksApi } from '@/lib/api/books';
 import { BookWithChunks } from '@/types/book';
+
+// Dynamic import type for Gapless5
+type Gapless5Type = any;
 
 export interface GaplessPlaybackCallbacks {
   onError?: (error: AudioError) => void;
@@ -17,7 +19,7 @@ export interface GaplessPlaybackCallbacks {
 export class GaplessAudioStreamer {
   private bookId: string;
   private book: BookWithChunks | null = null;
-  private player: Gapless5 | null = null;
+  private player: Gapless5Type | null = null;
   private virtualTimeline: VirtualTimelineManager;
   private callbacks: GaplessPlaybackCallbacks;
   
@@ -47,6 +49,11 @@ export class GaplessAudioStreamer {
     try {
       console.log('🎵 Initializing Gapless Audio Streamer...');
       
+      // Check if we're in the browser before proceeding
+      if (typeof window === 'undefined') {
+        throw new Error('Gapless Audio Streamer can only be initialized in the browser');
+      }
+      
       // 1. Get book data with chunks
       const bookResponse = await booksApi.getBookWithChunks(this.bookId);
       this.book = bookResponse.data || null;
@@ -66,7 +73,8 @@ export class GaplessAudioStreamer {
       // 4. Create track URLs array for Gapless5
       const trackUrls = this.book.chunks.map((_, index) => this.chunkUrls.get(index)!);
 
-      // 5. Initialize Gapless5 player
+      // 5. Dynamically import and initialize Gapless5 player
+      const { Gapless5 } = await import('@regosen/gapless-5');
       this.player = new Gapless5({
         tracks: trackUrls,
         crossfade: 100, // 100ms crossfade for smooth transitions

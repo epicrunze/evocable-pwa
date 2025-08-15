@@ -1,3 +1,5 @@
+'use client';
+
 import { AudioPlayerTest } from '@/components/debug/AudioPlayerTest';
 
 export default function AudioTestPage() {
