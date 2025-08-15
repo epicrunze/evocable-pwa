@@ -1,7 +1,8 @@
 'use client';
 
-import { memo } from 'react';
-import { Book } from '@/types/book';
+import { memo, useEffect, useState } from 'react';
+import { Book, BookWithChunks } from '@/types/book';
+import { booksApi } from '@/lib/api/books';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Progress } from '@/components/ui/Progress';
@@ -95,6 +96,46 @@ function formatFileSize(bytes?: number): string {
   return `${mb.toFixed(1)} MB`;
 }
 
+// Hook to fetch detailed book information for completed books
+function useBookDetails(book: Book) {
+  const [bookDetails, setBookDetails] = useState<BookWithChunks | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Only fetch details for completed books
+    if (book.status !== 'completed') {
+      setBookDetails(null);
+      return;
+    }
+
+    let isCancelled = false;
+    setLoading(true);
+
+    const fetchDetails = async () => {
+      try {
+        const response = await booksApi.getBookWithChunks(book.id);
+        if (!isCancelled && response.data) {
+          setBookDetails(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch book details:', error);
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchDetails();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [book.id, book.status]);
+
+  return { bookDetails, loading };
+}
+
 export const BookCard = memo<BookCardProps>(({
   book,
   onPlay,
@@ -105,10 +146,17 @@ export const BookCard = memo<BookCardProps>(({
 }) => {
   const config = statusConfig[book.status];
   const StatusIcon = config.icon;
+  const { bookDetails, loading: detailsLoading } = useBookDetails(book);
   
   const canPlay = book.status === 'completed';
   const isProcessing = ['processing', 'extracting', 'segmenting', 'generating_audio', 'transcoding'].includes(book.status);
   const hasFailed = book.status === 'failed';
+
+  // Calculate accurate duration and file size from detailed data
+  const displayDuration = bookDetails?.total_duration_s ?? book.duration;
+  const displayFileSize = bookDetails ? 
+    bookDetails.chunks.reduce((total, chunk) => total + chunk.file_size, 0) : 
+    book.file_size;
 
   return (
     <Card className={`book-card transition-all duration-200 hover:shadow-lg ${className}`} data-testid="book-card">
@@ -153,8 +201,20 @@ export const BookCard = memo<BookCardProps>(({
         <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
           <div className="flex items-center space-x-4">
             <span className="capitalize">{book.format}</span>
-            <span>{formatDuration(book.duration)}</span>
-            <span>{formatFileSize(book.file_size)}</span>
+            <span className="flex items-center">
+              {detailsLoading && canPlay ? (
+                <span className="animate-pulse">Loading...</span>
+              ) : (
+                formatDuration(displayDuration)
+              )}
+            </span>
+            <span className="flex items-center">
+              {detailsLoading && canPlay ? (
+                <span className="animate-pulse">-- MB</span>
+              ) : (
+                formatFileSize(displayFileSize)
+              )}
+            </span>
           </div>
           <time dateTime={book.created_at} className="text-xs">
             {new Date(book.created_at).toLocaleDateString()}
@@ -223,8 +283,15 @@ export const BookCard = memo<BookCardProps>(({
           
           {/* Book Stats */}
           <div className="text-xs text-gray-500">
-            {book.total_chunks && (
-              <span>{book.total_chunks} chunks</span>
+            {(bookDetails?.chunks.length || book.total_chunks) && (
+              <span>
+                {bookDetails?.chunks.length || book.total_chunks} chunks
+                {bookDetails && (
+                  <span className="ml-2 text-green-600">
+                    • {formatDuration(bookDetails.total_duration_s)}
+                  </span>
+                )}
+              </span>
             )}
           </div>
         </div>
