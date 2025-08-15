@@ -135,6 +135,81 @@ export function AudioPlayerTest() {
     }
   };
 
+  const testGaplessPlayer = async () => {
+    try {
+      addLog('🎵 Testing Gapless-5 Integration...');
+      
+      // Get book data first
+      const { booksApi } = await import('@/lib/api/books');
+      const bookResult = await booksApi.getBookWithChunks(bookId);
+      
+      if (bookResult.error || !bookResult.data) {
+        addLog(`❌ Cannot test gapless player: ${bookResult.error?.message || 'No book data'}`);
+        return;
+      }
+      
+      const book = bookResult.data;
+      addLog(`📖 Book: "${book.title}" (${book.chunks.length} chunks, ${book.total_duration_s.toFixed(2)}s)`);
+      
+      // Initialize gapless audio streamer
+      const { GaplessAudioStreamer } = await import('@/lib/audio/gapless-streamer');
+      
+      const gaplessPlayer = new GaplessAudioStreamer(bookId, {
+        onError: (error) => addLog(`❌ Gapless Error: ${error.message}`),
+        onChunkChange: (chunkIndex) => addLog(`🔄 Gapless chunk changed: ${chunkIndex}`),
+        onVirtualTimeUpdate: (virtualTime, duration) => 
+          addLog(`⏱️  Gapless virtual time: ${virtualTime.toFixed(2)}s / ${duration.toFixed(2)}s`),
+        onPlay: () => addLog(`▶️ Gapless player started`),
+        onPause: () => addLog(`⏸️ Gapless player paused`),
+        onEnd: () => addLog(`⏹️ Gapless player ended`),
+      }, {
+        prefetchSize: 3,
+        crossfade: 100, // 100ms crossfade
+      });
+      
+      addLog('🔧 Initializing Gapless-5 player...');
+      await gaplessPlayer.initialize();
+      addLog('✅ Gapless-5 player initialized successfully!');
+      
+      // Test basic functionality
+      addLog('📏 Testing gapless functionality...');
+      const timeline = gaplessPlayer.getVirtualTimeline();
+      const totalDuration = timeline.getTotalDuration();
+      addLog(`📊 Total virtual duration: ${totalDuration.toFixed(2)}s`);
+      
+      // Test virtual time seeking
+      addLog('🎯 Testing gapless seeking...');
+      await gaplessPlayer.seekToVirtualTime(9.42); // Should go to chunk 3
+      const seekResult = gaplessPlayer.getCurrentVirtualTime();
+      addLog(`✅ Gapless seek to 9.42s result: ${seekResult.toFixed(2)}s (chunk ${gaplessPlayer.getCurrentChunk()})`);
+      
+      // Test playback controls
+      addLog('🎮 Testing gapless playback controls...');
+      addLog('▶️ Starting playback...');
+      await gaplessPlayer.play();
+      
+      // Wait a moment then pause
+      setTimeout(async () => {
+        addLog('⏸️ Pausing playback...');
+        await gaplessPlayer.pause();
+        
+        // Cleanup
+        gaplessPlayer.cleanup();
+        addLog('🧹 Gapless player cleaned up');
+        addLog('✅ Gapless-5 Integration tests completed!');
+        addLog('🎵 Key Benefits:');
+        addLog('  • True gapless transitions between chunks');
+        addLog('  • Web Audio API for precise control');
+        addLog('  • Built-in crossfading (100ms)');
+        addLog('  • No manual audio element management');
+        addLog('  • Seamless seeking across entire timeline');
+      }, 3000);
+      
+    } catch (error) {
+      addLog(`❌ Gapless player test failed: ${error}`);
+    }
+  };
+
   const testVirtualUI = async () => {
     try {
       addLog('🎨 Testing Phase 4: Virtual AudioPlayer UI...');
@@ -381,6 +456,7 @@ export function AudioPlayerTest() {
           <Button onClick={testEnhancedStreamer} variant="secondary">🚀 Test Phase 2</Button>
           <Button onClick={testVirtualHook} variant="secondary">🎯 Test Phase 3</Button>
           <Button onClick={testVirtualUI} variant="secondary">🎨 Test Phase 4</Button>
+          <Button onClick={testGaplessPlayer} variant="default">🎵 Test Gapless-5</Button>
           <Button onClick={clearLogs} variant="outline">Clear Logs</Button>
         </div>
 

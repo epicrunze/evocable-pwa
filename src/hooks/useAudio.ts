@@ -5,10 +5,12 @@ import { BookWithChunks } from '@/types/book';
 import { audioApi } from '@/lib/api/audio';
 import { booksApi } from '@/lib/api/books';
 import { AudioStreamer } from '@/lib/audio-streamer';
+import { GaplessAudioStreamer } from '@/lib/audio/gapless-streamer';
 
 interface UseAudioOptions {
   bookId?: string;
   autoPlay?: boolean;
+  useGaplessPlayer?: boolean; // New option to use Gapless-5
   onPlay?: () => void;
   onPause?: () => void;
   onTimeUpdate?: (time: number) => void;
@@ -35,6 +37,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
   const {
     bookId: initialBookId,
     autoPlay = false,
+    useGaplessPlayer = true, // Default to true for better experience
     onPlay,
     onPause,
     onTimeUpdate,
@@ -54,6 +57,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
   const currentChunkRef = useRef<number>(0);
   const isSeekingRef = useRef(false);
   const audioStreamerRef = useRef<AudioStreamer | null>(null);
+  const gaplessStreamerRef = useRef<GaplessAudioStreamer | null>(null);
   const loadChunkRef = useRef<((chunkIndex: number) => Promise<void>) | null>(null);
 
   // Fetch book data with chunks
