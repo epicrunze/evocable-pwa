@@ -3,7 +3,7 @@ import { Button, ButtonProps } from './Button';
 import { PlayIcon, PauseIcon, Loader2Icon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface PlayButtonProps extends Omit<ButtonProps, 'children'> {
+interface PlayButtonProps extends Omit<ButtonProps, 'children' | 'size'> {
   isPlaying?: boolean;
   isLoading?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'xl';
