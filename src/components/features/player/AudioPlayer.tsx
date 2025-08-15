@@ -217,17 +217,8 @@ export function AudioPlayer({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Badge variant="secondary">
-              {audioState.isTransitioning ? (
-                <>⏱️ Transitioning...</>
-              ) : (
-                <>🎵 Seamless Playback</>
-              )}
+              🎵 Gapless Audio
             </Badge>
-            {book.chunks && (
-              <Badge variant="outline" className="text-xs">
-                Chunk {audioState.currentChunk + 1}/{book.chunks.length}
-              </Badge>
-            )}
           </div>
           <span className="text-sm text-gray-500">
             {formatTime(audioState.virtualCurrentTime)} / {formatTime(audioState.virtualDuration)}
@@ -242,9 +233,7 @@ export function AudioPlayer({
           <div className="relative">
             <Progress 
               value={currentProgress} 
-              className={`h-3 cursor-pointer transition-all duration-200 ${
-                audioState.isTransitioning ? 'animate-pulse' : ''
-              }`}
+              className="h-3 cursor-pointer transition-all duration-100"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const percentage = ((e.clientX - rect.left) / rect.width) * 100;
@@ -274,11 +263,9 @@ export function AudioPlayer({
             <span>{formatTime(audioState.virtualDuration)}</span>
           </div>
           
-          {/* Virtual Timeline Debug Info */}
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
-            <span>Virtual: {audioState.virtualCurrentTime.toFixed(1)}s</span>
-            <span>Chunk {audioState.currentChunk + 1}: {audioState.chunkLocalTime.toFixed(1)}s</span>
-            <span>{audioState.chunkOffsets.length} chunks</span>
+          {/* Simplified status indicator */}
+          <div className="flex justify-center text-xs text-gray-400 mt-1">
+            <span>Seamless Playback • {audioState.chunkOffsets.length} segments</span>
           </div>
         </div>
       </div>

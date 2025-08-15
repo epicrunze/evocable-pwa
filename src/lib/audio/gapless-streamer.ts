@@ -77,11 +77,12 @@ export class GaplessAudioStreamer {
       const { Gapless5 } = await import('@regosen/gapless-5');
       this.player = new Gapless5({
         tracks: trackUrls,
-        crossfade: 100, // 100ms crossfade for smooth transitions
-        loadLimit: 3, // Load 3 tracks ahead
+        crossfade: 25, // Reduced to 25ms for tighter transitions
+        loadLimit: 5, // Load more tracks for better buffering
         loop: false,
         shuffle: false,
         useWebAudio: true, // Use Web Audio API for better performance
+        useHTML5Audio: false, // Disable HTML5 audio to prevent conflicts
       });
 
       // 6. Set up event listeners
@@ -226,24 +227,14 @@ export class GaplessAudioStreamer {
   }
 
   private startTimeUpdates(): void {
-    this.stopTimeUpdates(); // Clear any existing interval
-    
-    this.timeUpdateInterval = setInterval(() => {
-      if (this.player && this.isPlaying) {
-        const currentTime = this.player.getPosition();
-        const virtualTime = this.virtualTimeline.getVirtualTime(this.currentChunk, currentTime);
-        const totalDuration = this.virtualTimeline.getTotalDuration();
-        
-        this.callbacks.onVirtualTimeUpdate?.(virtualTime, totalDuration);
-      }
-    }, 100); // Update every 100ms for smooth progress
+    // Gapless-5 handles its own time updates via ontimeupdate
+    // No need for additional setInterval - this prevents double updates
+    console.log('⏱️ Time updates managed by Gapless-5 ontimeupdate event');
   }
 
   private stopTimeUpdates(): void {
-    if (this.timeUpdateInterval) {
-      clearInterval(this.timeUpdateInterval);
-      this.timeUpdateInterval = null;
-    }
+    // No manual interval to stop - Gapless-5 manages time updates
+    console.log('⏹️ Time updates stopped (managed by Gapless-5)');
   }
 
   // ===== PUBLIC API =====

@@ -53,10 +53,9 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Refs
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentChunkRef = useRef<number>(0);
   const isSeekingRef = useRef(false);
-  const audioStreamerRef = useRef<AudioStreamer | null>(null);
+  const audioStreamerRef = useRef<AudioStreamer | null>(null); // Keep for cleanup during migration
   const gaplessStreamerRef = useRef<GaplessAudioStreamer | null>(null);
   const loadChunkRef = useRef<((chunkIndex: number) => Promise<void>) | null>(null);
 
@@ -122,26 +121,28 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
           setAudioState(prev => prev ? { ...prev, currentChunk: chunkIndex } : null);
         },
         onVirtualTimeUpdate: (virtualTime: number, duration: number) => {
-          // Update virtual timeline state
+          // Simplified state update - avoid redundant calculations
           setAudioState(prev => {
             if (!prev) return null;
-            const chunkOffsets = gaplessStreamer.getVirtualTimeline().getChunkOffsets();
+            
+            // Get pre-calculated values from the streamer
             const currentChunk = gaplessStreamer.getCurrentChunk();
+            const chunkOffsets = prev.chunkOffsets; // Use cached offsets
             const chunkStartTime = chunkOffsets[currentChunk] || 0;
-            const chunkLocalTime = virtualTime - chunkStartTime;
+            const chunkLocalTime = Math.max(0, virtualTime - chunkStartTime);
             
             return {
               ...prev,
               virtualCurrentTime: virtualTime,
               virtualDuration: duration,
-              currentTime: virtualTime, // For gapless, virtual time IS the current time
-              chunkLocalTime: Math.max(0, chunkLocalTime),
+              currentTime: virtualTime,
+              chunkLocalTime: chunkLocalTime,
               duration: duration,
               currentChunk: currentChunk,
             };
           });
           
-          // Call the original onTimeUpdate callback with virtual time
+          // Call the original onTimeUpdate callback
           onTimeUpdate?.(virtualTime);
         },
         onPlay: () => {
@@ -210,56 +211,13 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
 
   // Load audio chunk using streamer
   const loadChunk = useCallback(async (chunkIndex: number) => {
-    if (!audioRef.current || !audioStreamerRef.current) {
-      console.log('loadChunk: Missing dependencies', { 
-        audioRef: !!audioRef.current, 
-        streamer: !!audioStreamerRef.current 
-      });
+    if (!gaplessStreamerRef.current) {
+      console.log('loadChunk: Missing gapless streamer');
       return;
     }
 
-    try {
-      const streamer = audioStreamerRef.current;
-      const book = streamer.getBook();
-      
-      if (!book) {
-        console.log('loadChunk: Book not available in streamer');
-        return;
-      }
-
-      const chunk = book.chunks[chunkIndex];
-      if (!chunk) {
-        console.log('loadChunk: Chunk not found', { chunkIndex, totalChunks: book.chunks.length });
-        return;
-      }
-
-      console.log('loadChunk: Loading chunk via streamer', { chunkIndex });
-      
-      // Get cached or download chunk URL
-      const chunkUrl = await streamer.loadChunk(chunkIndex);
-      
-      audioRef.current.src = chunkUrl;
-      audioRef.current.load();
-
-      setAudioState(prev => prev ? {
-        ...prev,
-        currentChunk: chunkIndex,
-        duration: chunk.duration_s,
-        isLoading: true,
-      } : null);
-
-      // onChunkChange is called by the streamer
-    } catch (error) {
-      console.error('loadChunk: Error loading chunk', error);
-      const audioError: AudioError = {
-        type: 'network',
-        message: 'Failed to load audio chunk',
-        recoverable: true,
-        chunk: chunkIndex,
-      };
-      setCurrentError(audioError);
-      onError?.(audioError);
-    }
+    // Gapless-5 handles chunk loading automatically - no implementation needed
+    console.log('Legacy loadChunk called - Gapless-5 handles this automatically', { chunkIndex });
   }, [onError]);
 
   // Update loadChunk ref whenever it changes
@@ -406,12 +364,9 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
 
   // Load first chunk when audio is initialized and streamer is ready
   useEffect(() => {
-    if (isInitialized && audioStreamerRef.current && audioRef.current && book && book.chunks?.length > 0) {
-      const streamer = audioStreamerRef.current;
-      if (streamer.isReady()) {
-        console.log('Loading first chunk');
-        loadChunk(0);
-      }
+    if (isInitialized && gaplessStreamerRef.current && book && book.chunks?.length > 0) {
+      // Gapless-5 automatically loads and manages chunks - no manual loading needed
+      console.log('Gapless-5 audio ready - chunks managed automatically');
     }
   }, [isInitialized, book, loadChunk]);
 
@@ -464,12 +419,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
 
   // Initialize function
   const initialize = useCallback(async (newBookId: string) => {
-    // Cleanup existing audio and streamer
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.removeEventListener('loadstart', () => {});
-      audioRef.current = null;
-    }
+    // Cleanup existing streamers
 
     if (audioStreamerRef.current) {
       audioStreamerRef.current.cleanup();
@@ -494,10 +444,6 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     if (audioStreamerRef.current) {
       audioStreamerRef.current.cleanup();
       audioStreamerRef.current = null;
-    }
-
-    if (audioRef.current) {
-      audioRef.current = null;
     }
 
     setAudioState(null);
