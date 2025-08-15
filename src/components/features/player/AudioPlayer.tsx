@@ -281,7 +281,7 @@ export function AudioPlayer({
             disabled={audioState.isLoading}
             className="h-10 w-10 p-0"
           >
-            <SkipBackIcon className="w-4 h-4" />
+            <SkipBackIcon className="w-4 h-4 text-gray-700" />
           </Button>
 
           {/* Play/Pause */}
@@ -289,14 +289,14 @@ export function AudioPlayer({
             onClick={audioState.isPlaying ? controls.pause : controls.play}
             disabled={audioState.isLoading}
             size="lg"
-            className="h-14 w-14 rounded-full"
+            className="h-14 w-14 rounded-full flex items-center justify-center"
           >
             {audioState.isLoading ? (
-              <Loader2Icon className="w-6 h-6 animate-spin" />
+              <Loader2Icon className="w-6 h-6 animate-spin text-white" />
             ) : audioState.isPlaying ? (
-              <PauseIcon className="w-6 h-6" />
+              <PauseIcon className="w-6 h-6 text-white fill-current" />
             ) : (
-              <PlayIcon className="w-6 h-6" />
+              <PlayIcon className="w-6 h-6 text-white fill-current" />
             )}
           </Button>
 
@@ -308,7 +308,7 @@ export function AudioPlayer({
             disabled={audioState.isLoading}
             className="h-10 w-10 p-0"
           >
-            <SkipForwardIcon className="w-4 h-4" />
+            <SkipForwardIcon className="w-4 h-4 text-gray-700" />
           </Button>
         </div>
 
@@ -317,15 +317,25 @@ export function AudioPlayer({
           {/* Volume Control */}
           <div className="flex items-center space-x-2">
             <VolumeIconComponent className="w-4 h-4 text-gray-500" />
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={audioState.volume}
-              onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-              className="w-20 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 slider"
-            />
+            <div className="relative w-20 h-2 bg-gray-200 rounded-full dark:bg-gray-700">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={audioState.volume}
+                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <div 
+                className="absolute inset-0 bg-[#129990] rounded-full transition-all duration-200"
+                style={{ width: `${audioState.volume * 100}%` }}
+              />
+              <div 
+                className="absolute top-1/2 w-3 h-3 bg-white border-2 border-[#129990] rounded-full transform -translate-y-1/2 transition-all duration-200 shadow-sm"
+                style={{ left: `calc(${audioState.volume * 100}% - 6px)` }}
+              />
+            </div>
             <span className="text-xs text-gray-500 w-8">
               {Math.round(audioState.volume * 100)}%
             </span>
