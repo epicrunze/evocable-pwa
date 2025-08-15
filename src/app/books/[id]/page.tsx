@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { AudioPlayer } from '@/components/features/player/AudioPlayer';
 import { useBooks } from '@/hooks/useBooks';
 import { AudioError } from '@/types/audio';
+import { formatDurationShort, formatFileSize } from '@/lib/utils';
 import { 
   ArrowLeftIcon, 
   DownloadIcon, 
@@ -69,16 +70,7 @@ export default function BookPlayerPage() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Format duration
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
+
 
   // Loading state
   if (booksLoading) {
@@ -256,7 +248,7 @@ export default function BookPlayerPage() {
                 {book.duration && (
                   <Badge variant="secondary">
                     <ClockIcon size={14} className="mr-1" />
-                    {formatDuration(book.duration)}
+                    {formatDurationShort(book.duration)}
                   </Badge>
                 )}
               </div>
@@ -339,7 +331,7 @@ export default function BookPlayerPage() {
                 {book.duration && (
                   <div className="flex justify-between">
                     <dt className="text-gray-500 dark:text-gray-400">Duration:</dt>
-                    <dd className="text-gray-900 dark:text-white">{formatDuration(book.duration)}</dd>
+                    <dd className="text-gray-900 dark:text-white">{formatDurationShort(book.duration)}</dd>
                   </div>
                 )}
                 {book.file_size && (

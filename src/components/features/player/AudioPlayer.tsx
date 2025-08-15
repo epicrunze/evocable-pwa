@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
+import { PlayButton } from '@/components/ui/PlayButton';
 import { Progress } from '@/components/ui/Progress';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { useAudio } from '@/hooks/useAudio';
 import { AudioError } from '@/types/audio';
+import { formatTime } from '@/lib/utils';
 import { 
-  PlayIcon, 
-  PauseIcon, 
   SkipBackIcon, 
   SkipForwardIcon,
   Volume1Icon,
@@ -64,12 +64,7 @@ export function AudioPlayer({
     };
   }, [bookId, initialize, cleanup]);
 
-  // Format time helper
-  const formatTime = useCallback((seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }, []);
+
 
   // Handle seek with virtual timeline
   const handleSeek = useCallback((percentage: number) => {
@@ -168,10 +163,49 @@ export function AudioPlayer({
             <Badge variant="secondary">
               Initializing audio...
             </Badge>
+            {/* Debug info */}
+            <Badge variant="outline" className="text-xs">
+              State: {audioState ? 'Available' : 'Missing'} | Book: {book ? 'Available' : 'Missing'}
+            </Badge>
           </div>
         </div>
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-b-transparent border-blue-600"></div>
+        </div>
+        
+        {/* Show basic controls even during initialization */}
+        <div className="flex items-center justify-center space-x-4 mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={true}
+            className="h-10 w-10 p-0"
+          >
+            <SkipBackIcon className="w-4 h-4 text-gray-400" />
+          </Button>
+          
+          <PlayButton
+            onClick={() => {
+              console.log('Play clicked during initialization');
+              // Try to initialize if not already done
+              if (book?.id) {
+                initialize(book.id);
+              }
+            }}
+            disabled={!book || isLoading}
+            isLoading={isLoading}
+            isPlaying={false}
+            size="lg"
+          />
+          
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={true}
+            className="h-10 w-10 p-0"
+          >
+            <SkipForwardIcon className="w-4 h-4 text-gray-400" />
+          </Button>
         </div>
       </div>
     );
@@ -285,20 +319,13 @@ export function AudioPlayer({
           </Button>
 
           {/* Play/Pause */}
-          <Button
+          <PlayButton
             onClick={audioState.isPlaying ? controls.pause : controls.play}
             disabled={audioState.isLoading}
+            isLoading={audioState.isLoading}
+            isPlaying={audioState.isPlaying}
             size="lg"
-            className="h-14 w-14 rounded-full flex items-center justify-center"
-          >
-            {audioState.isLoading ? (
-              <Loader2Icon className="w-6 h-6 animate-spin text-white" />
-            ) : audioState.isPlaying ? (
-              <PauseIcon className="w-6 h-6 text-white fill-current" />
-            ) : (
-              <PlayIcon className="w-6 h-6 text-white fill-current" />
-            )}
-          </Button>
+          />
 
           {/* Skip Forward */}
           <Button

@@ -16,6 +16,7 @@ import {
   AlertCircleIcon,
   CheckCircleIcon
 } from 'lucide-react';
+import { formatDuration, formatFileSize as formatFileSizeUtil } from '@/lib/utils';
 
 interface BookCardProps {
   book: Book;
@@ -78,22 +79,11 @@ const statusConfig = {
   },
 };
 
-function formatDuration(seconds?: number): string {
-  if (!seconds) return '--:--';
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
-  
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
+
 
 function formatFileSize(bytes?: number): string {
   if (!bytes) return '0 MB';
-  const mb = bytes / (1024 * 1024);
-  return `${mb.toFixed(1)} MB`;
+  return formatFileSizeUtil(bytes);
 }
 
 // Hook to fetch detailed book information for completed books
