@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AudioState, AudioError, Bookmark, PlaybackControls } from '@/types/audio';
+import { AudioError, Bookmark, VirtualAudioState, VirtualPlaybackControls } from '@/types/audio';
 import { BookWithChunks } from '@/types/book';
 import { audioApi } from '@/lib/api/audio';
 import { booksApi } from '@/lib/api/books';
@@ -18,8 +18,8 @@ interface UseAudioOptions {
 }
 
 interface UseAudioReturn {
-  audioState: AudioState | null;
-  controls: PlaybackControls;
+  audioState: VirtualAudioState | null;
+  controls: VirtualPlaybackControls;
   bookmarks: Bookmark[];
   isLoading: boolean;
   error: AudioError | null;
@@ -45,7 +45,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
 
   // State
   const [bookId, setBookId] = useState<string | null>(initialBookId || null);
-  const [audioState, setAudioState] = useState<AudioState | null>(null);
+  const [audioState, setAudioState] = useState<VirtualAudioState | null>(null);
   const [currentError, setCurrentError] = useState<AudioError | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -109,11 +109,26 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
           onChunkChange?.(chunkIndex);
         },
         onVirtualTimeUpdate: (virtualTime: number, duration: number) => {
-          // This will be used later when we integrate with virtual timeline
-          console.log('Virtual time update:', virtualTime, '/', duration);
+          // Update virtual timeline state
+          setAudioState(prev => {
+            if (!prev) return null;
+            const activeAudio = streamer.getActiveAudioElement();
+            return {
+              ...prev,
+              virtualCurrentTime: virtualTime,
+              virtualDuration: duration,
+              currentTime: activeAudio?.currentTime || 0,
+              chunkLocalTime: activeAudio?.currentTime || 0,
+              duration: duration, // Total virtual duration
+            };
+          });
+          
+          // Call the original onTimeUpdate callback with virtual time
+          onTimeUpdate?.(virtualTime);
         },
         onSeamlessTransition: (fromChunk: number, toChunk: number) => {
           console.log('Seamless transition:', fromChunk, '->', toChunk);
+          setAudioState(prev => prev ? { ...prev, isTransitioning: false } : null);
         },
         onPreloadProgress: (chunkIndex: number, progress: number) => {
           console.log(`Preloading chunk ${chunkIndex}: ${progress}%`);
@@ -128,89 +143,84 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
       audioStreamerRef.current = streamer;
       console.log('initializeAudio: Streamer initialized successfully');
 
-      // Initialize audio element
-      const audio = new Audio();
-      audio.preload = 'metadata';
-      audio.crossOrigin = 'anonymous';
+      // Initialize virtual timeline state
+      const timeline = streamer.getVirtualTimeline();
+      const chunkOffsets = timeline.getChunkOffsets();
 
-      // Set up event listeners
-      audio.addEventListener('loadstart', () => {
-        console.log('Audio loadstart event');
-        setAudioState(prev => prev ? { ...prev, isLoading: true } : null);
-      });
+      // Get active audio element from streamer for minimal event tracking
+      const activeAudio = streamer.getActiveAudioElement();
+      if (activeAudio) {
+        audioRef.current = activeAudio;
 
-      audio.addEventListener('loadedmetadata', () => {
-        console.log('Audio loadedmetadata event, duration:', audio.duration);
-        setAudioState(prev => prev ? { 
-          ...prev, 
-          duration: audio.duration,
-          isLoading: false 
-        } : null);
-      });
+        // Set up minimal event listeners for play/pause state tracking
+        activeAudio.addEventListener('loadstart', () => {
+          console.log('Virtual audio loadstart event');
+          setAudioState(prev => prev ? { ...prev, isLoading: true } : null);
+        });
 
-      audio.addEventListener('timeupdate', () => {
-        if (isSeekingRef.current) return;
-        
-        setAudioState(prev => prev ? {
-          ...prev,
-          currentTime: audio.currentTime,
-          bufferedRanges: audio.buffered,
-        } : null);
-        
-        onTimeUpdate?.(audio.currentTime);
-      });
+        activeAudio.addEventListener('loadedmetadata', () => {
+          console.log('Virtual audio loadedmetadata event, duration:', activeAudio.duration);
+          // Duration is now managed by virtual timeline, not individual chunks
+          setAudioState(prev => prev ? { 
+            ...prev, 
+            isLoading: false 
+          } : null);
+        });
 
-      audio.addEventListener('play', () => {
-        console.log('Audio play event');
-        setAudioState(prev => prev ? { ...prev, isPlaying: true } : null);
-        onPlay?.();
-      });
+        // Time update is now handled by virtual timeline callbacks
+        // No need for manual timeupdate listener
 
-      audio.addEventListener('pause', () => {
-        console.log('Audio pause event');
-        setAudioState(prev => prev ? { ...prev, isPlaying: false } : null);
-        onPause?.();
-      });
+        activeAudio.addEventListener('play', () => {
+          console.log('Virtual audio play event');
+          setAudioState(prev => prev ? { ...prev, isPlaying: true } : null);
+          onPlay?.();
+        });
 
-      const endedHandler = () => {
-        console.log('Audio ended event');
-        // Handle chunk end inline to avoid circular dependency
-        if (!audioStreamerRef.current || !loadChunkRef.current) return;
-
-        const streamer = audioStreamerRef.current;
-        const nextChunkIndex = currentChunkRef.current + 1;
-        
-        if (nextChunkIndex < streamer.getTotalChunks()) {
-          console.log('Loading next chunk:', nextChunkIndex);
-          // Call loadChunk async via ref
-          loadChunkRef.current(nextChunkIndex).catch(error => {
-            console.error('Failed to load next chunk:', error);
-            setAudioState(prev => prev ? { ...prev, isPlaying: false } : null);
-          });
-        } else {
-          console.log('Reached end of book');
+        activeAudio.addEventListener('pause', () => {
+          console.log('Virtual audio pause event');
           setAudioState(prev => prev ? { ...prev, isPlaying: false } : null);
-          onEnd?.();
-        }
-      };
+          onPause?.();
+        });
 
-      audio.addEventListener('ended', endedHandler);
+        activeAudio.addEventListener('ended', () => {
+          // Ended events are now handled by the streamer's seamless transition logic
+          console.log('Virtual audio chunk ended - streamer handling seamless transition');
+        });
 
-      audio.addEventListener('error', (event) => {
-        console.error('Audio element error:', event);
-        const error: AudioError = {
-          type: 'playback',
-          message: 'Audio playback error',
-          recoverable: true,
-          chunk: currentChunkRef.current,
-        };
-        setCurrentError(error);
-        onError?.(error);
+        activeAudio.addEventListener('error', (event) => {
+          console.error('Virtual audio error:', event);
+          const error: AudioError = {
+            type: 'playback',
+            message: 'Audio playback error',
+            recoverable: true,
+            chunk: currentChunkRef.current,
+          };
+          setCurrentError(error);
+          onError?.(error);
+        });
+      }
+      
+      // Initialize virtual audio state
+      setAudioState({
+        bookId: bookId!,
+        currentChunk: 0,
+        currentTime: 0,
+        duration: timeline.getTotalDuration(),
+        isPlaying: false,
+        isLoading: false,
+        volume: 1,
+        playbackRate: 1,
+        bufferedRanges: new TimeRanges(),
+        // Virtual timeline properties
+        virtualCurrentTime: 0,
+        virtualDuration: timeline.getTotalDuration(),
+        chunkLocalTime: 0,
+        chunkOffsets: chunkOffsets,
+        isTransitioning: false,
       });
-
-      audioRef.current = audio;
+      
       setIsInitialized(true);
-      console.log('initializeAudio: Audio element initialized successfully');
+      console.log('initializeAudio: Virtual audio state initialized successfully');
     } catch (error) {
       console.error('Failed to initialize audio:', error);
       const audioError: AudioError = {
@@ -285,7 +295,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
 
 
   // Playback controls
-  const controls: PlaybackControls = useMemo(() => ({
+  const controls: VirtualPlaybackControls = useMemo(() => ({
     play: async () => {
       if (!audioRef.current) {
         console.log('play: No audio element');
@@ -314,56 +324,56 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     },
 
     seek: async (time: number) => {
-      if (!audioRef.current || !audioStreamerRef.current) return;
+      // Legacy seek method - use streamer directly to avoid circular reference
+      if (!audioStreamerRef.current) return;
+      await audioStreamerRef.current.seekToVirtualTime(time);
+    },
+
+    // Virtual timeline seeking methods
+    seekToVirtualTime: async (virtualTime: number) => {
+      if (!audioStreamerRef.current) return;
 
       const streamer = audioStreamerRef.current;
-      const book = streamer.getBook();
-      if (!book) return;
-
       isSeekingRef.current = true;
       
       try {
-        // Calculate which chunk contains the target time
-        let targetChunk = 0;
-        let cumulativeTime = 0;
+        console.log('seekToVirtualTime: Seeking to virtual time:', virtualTime);
+        await streamer.seekToVirtualTime(virtualTime);
         
-        for (let i = 0; i < book.chunks.length; i++) {
-          if (cumulativeTime + book.chunks[i].duration_s > time) {
-            targetChunk = i;
-            break;
-          }
-          cumulativeTime += book.chunks[i].duration_s;
-        }
-
-        const chunkStartTime = cumulativeTime;
-        const localTime = time - chunkStartTime;
-
-        // Load chunk if different from current
-        if (targetChunk !== currentChunkRef.current) {
-          await loadChunk(targetChunk);
-        }
-
-        // Seek to local time in chunk
-        audioRef.current.currentTime = localTime;
+        // Update audio state with new virtual position
+        const newVirtualTime = streamer.getCurrentVirtualTime();
+        const activeAudio = streamer.getActiveAudioElement();
         
         setAudioState(prev => prev ? {
           ...prev,
-          currentTime: localTime,
-          currentChunk: targetChunk,
+          virtualCurrentTime: newVirtualTime,
+          currentTime: activeAudio?.currentTime || 0,
+          chunkLocalTime: activeAudio?.currentTime || 0,
         } : null);
 
         isSeekingRef.current = false;
+        console.log('seekToVirtualTime: Seek completed to:', newVirtualTime);
       } catch (error) {
-        console.error('Seek error:', error);
+        console.error('Virtual seek error:', error);
         isSeekingRef.current = false;
         const audioError: AudioError = {
           type: 'playback',
-          message: 'Failed to seek to position',
+          message: 'Failed to seek to virtual position',
           recoverable: true,
         };
         setCurrentError(audioError);
         onError?.(audioError);
       }
+    },
+
+    getCurrentVirtualTime: () => {
+      if (!audioStreamerRef.current) return 0;
+      return audioStreamerRef.current.getCurrentVirtualTime();
+    },
+
+    getTotalVirtualDuration: () => {
+      if (!audioStreamerRef.current) return 0;
+      return audioStreamerRef.current.getTotalVirtualDuration();
     },
 
     setVolume: async (volume: number) => {
@@ -381,99 +391,21 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     },
 
     skipForward: async (seconds: number) => {
-      if (!audioRef.current || !audioState || !audioStreamerRef.current) return;
+      if (!audioStreamerRef.current || !audioState) return;
       
-      const newTime = audioState.currentTime + seconds;
-      // Call seek method directly to avoid circular reference
-      const streamer = audioStreamerRef.current;
-      const book = streamer.getBook();
-      if (!book) return;
-
-      isSeekingRef.current = true;
+      const currentVirtualTime = audioStreamerRef.current.getCurrentVirtualTime();
+      const newVirtualTime = currentVirtualTime + seconds;
       
-      try {
-        // Calculate which chunk contains the target time
-        let targetChunk = 0;
-        let cumulativeTime = 0;
-        
-        for (let i = 0; i < book.chunks.length; i++) {
-          if (cumulativeTime + book.chunks[i].duration_s > newTime) {
-            targetChunk = i;
-            break;
-          }
-          cumulativeTime += book.chunks[i].duration_s;
-        }
-
-        const chunkStartTime = cumulativeTime;
-        const localTime = newTime - chunkStartTime;
-
-        // Load chunk if different from current
-        if (targetChunk !== currentChunkRef.current) {
-          await loadChunk(targetChunk);
-        }
-
-        // Seek to local time in chunk
-        audioRef.current.currentTime = localTime;
-        
-        setAudioState(prev => prev ? {
-          ...prev,
-          currentTime: localTime,
-          currentChunk: targetChunk,
-        } : null);
-
-        isSeekingRef.current = false;
-      } catch (error) {
-        console.error('Skip forward error:', error);
-        isSeekingRef.current = false;
-      }
+      await audioStreamerRef.current.seekToVirtualTime(newVirtualTime);
     },
 
     skipBackward: async (seconds: number) => {
-      if (!audioRef.current || !audioState || !audioStreamerRef.current) return;
+      if (!audioStreamerRef.current || !audioState) return;
       
-      const newTime = Math.max(0, audioState.currentTime - seconds);
-      // Call seek method directly to avoid circular reference
-      const streamer = audioStreamerRef.current;
-      const book = streamer.getBook();
-      if (!book) return;
-
-      isSeekingRef.current = true;
+      const currentVirtualTime = audioStreamerRef.current.getCurrentVirtualTime();
+      const newVirtualTime = Math.max(0, currentVirtualTime - seconds);
       
-      try {
-        // Calculate which chunk contains the target time
-        let targetChunk = 0;
-        let cumulativeTime = 0;
-        
-        for (let i = 0; i < book.chunks.length; i++) {
-          if (cumulativeTime + book.chunks[i].duration_s > newTime) {
-            targetChunk = i;
-            break;
-          }
-          cumulativeTime += book.chunks[i].duration_s;
-        }
-
-        const chunkStartTime = cumulativeTime;
-        const localTime = newTime - chunkStartTime;
-
-        // Load chunk if different from current
-        if (targetChunk !== currentChunkRef.current) {
-          await loadChunk(targetChunk);
-        }
-
-        // Seek to local time in chunk
-        audioRef.current.currentTime = localTime;
-        
-        setAudioState(prev => prev ? {
-          ...prev,
-          currentTime: localTime,
-          currentChunk: targetChunk,
-        } : null);
-
-        isSeekingRef.current = false;
-      } catch (error) {
-        console.error('Skip backward error:', error);
-        isSeekingRef.current = false;
-      }
+      await audioStreamerRef.current.seekToVirtualTime(newVirtualTime);
     },
   }), [audioState, loadChunk, onError]);
 
@@ -482,18 +414,23 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
     if (bookId && book && !isInitialized) {
       console.log('Initializing audio system for bookId:', bookId, 'with book data');
       
-      // Initialize audio state first
+      // Initialize loading state (full virtual state will be set by initializeAudio)
       setAudioState({
-        bookId,
+        bookId: bookId!,
         currentChunk: 0,
         currentTime: 0,
         duration: 0,
         isPlaying: false,
-        isLoading: true, // Set loading true during initialization
+        isLoading: true,
         volume: 1,
         playbackRate: 1,
-        bufferedRanges: null,
-        error: currentError || undefined,
+        bufferedRanges: new TimeRanges(),
+        // Virtual timeline properties (placeholder values)
+        virtualCurrentTime: 0,
+        virtualDuration: 0,
+        chunkLocalTime: 0,
+        chunkOffsets: [],
+        isTransitioning: false,
       });
 
       // Then initialize the audio system

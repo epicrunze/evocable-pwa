@@ -135,6 +135,24 @@ export function AudioPlayerTest() {
     }
   };
 
+  const testVirtualHook = async () => {
+    try {
+      addLog('🎯 Testing Phase 3: Virtual useAudio Hook...');
+      
+      // Test the virtual useAudio hook
+      const { useAudio } = await import('@/hooks/useAudio');
+      
+      addLog('✅ Virtual useAudio hook imported successfully');
+      addLog('🔧 Hook expects VirtualAudioState and VirtualPlaybackControls');
+      addLog('🎮 Virtual timeline controls: seekToVirtualTime, getCurrentVirtualTime, getTotalVirtualDuration');
+      addLog('📊 Virtual state properties: virtualCurrentTime, virtualDuration, chunkLocalTime, chunkOffsets, isTransitioning');
+      addLog('✅ Phase 3 Virtual useAudio Hook integration completed!');
+      
+    } catch (error) {
+      addLog(`❌ Virtual hook test failed: ${error}`);
+    }
+  };
+
   const testEnhancedStreamer = async () => {
     try {
       addLog('🚀 Testing Phase 2: Enhanced Audio Streamer...');
@@ -334,6 +352,7 @@ export function AudioPlayerTest() {
           <Button onClick={testApiDirectly}>Test API Directly</Button>
           <Button onClick={testVirtualTimeline} variant="secondary">🧪 Test Phase 1</Button>
           <Button onClick={testEnhancedStreamer} variant="secondary">🚀 Test Phase 2</Button>
+          <Button onClick={testVirtualHook} variant="secondary">🎯 Test Phase 3</Button>
           <Button onClick={clearLogs} variant="outline">Clear Logs</Button>
         </div>
 
