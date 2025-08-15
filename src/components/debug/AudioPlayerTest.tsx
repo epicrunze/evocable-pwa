@@ -123,21 +123,6 @@ export function AudioPlayerTest() {
       
       if (bookResult.data) {
         addLog(`Book found: ${bookResult.data.title} (${bookResult.data.chunks?.length || 0} chunks)`);
-        
-        // Test Virtual Timeline
-        addLog('Testing Virtual Timeline...');
-        const { VirtualTimelineManager } = await import('@/lib/audio/virtual-timeline');
-        const timeline = new VirtualTimelineManager();
-        
-        timeline.initialize(bookResult.data.chunks);
-        addLog(`Timeline initialized: ${timeline.getTotalDuration().toFixed(2)}s total`);
-        
-        // Test some virtual time calculations
-        const testTimes = [0, 9.42, 18.0, 36.0];
-        testTimes.forEach(virtualTime => {
-          const { chunkIndex, localTime } = timeline.getChunkPosition(virtualTime);
-          addLog(`Virtual ${virtualTime}s -> Chunk ${chunkIndex}, Local ${localTime.toFixed(2)}s`);
-        });
       }
       
       // Test audio API
@@ -147,6 +132,78 @@ export function AudioPlayerTest() {
       
     } catch (error) {
       addLog(`Direct test failed: ${error}`);
+    }
+  };
+
+  const testVirtualTimeline = async () => {
+    try {
+      addLog('🧪 Testing Phase 1: Virtual Timeline...');
+      
+      // Get book data first
+      const { booksApi } = await import('@/lib/api/books');
+      const bookResult = await booksApi.getBookWithChunks(bookId);
+      
+      if (bookResult.error || !bookResult.data) {
+        addLog(`❌ Cannot test timeline: ${bookResult.error?.message || 'No book data'}`);
+        return;
+      }
+      
+      const book = bookResult.data;
+      addLog(`📖 Book: "${book.title}" (${book.chunks.length} chunks, ${book.total_duration_s.toFixed(2)}s)`);
+      
+      // Initialize virtual timeline
+      const { VirtualTimelineManager } = await import('@/lib/audio/virtual-timeline');
+      const timeline = new VirtualTimelineManager();
+      
+      timeline.initialize(book.chunks);
+      addLog(`✅ Timeline initialized: ${timeline.getTotalDuration().toFixed(2)}s total`);
+      
+      // Test virtual time calculations
+      addLog('🔄 Testing virtual time calculations...');
+      const testTimes = [0, 3.14, 6.28, 9.42, 18.0, 25.2, 35.99, 36.0];
+      
+      testTimes.forEach(virtualTime => {
+        const { chunkIndex, localTime } = timeline.getChunkPosition(virtualTime);
+        const reconstructed = timeline.getVirtualTime(chunkIndex, localTime);
+        const chunk = timeline.getChunkByIndex(chunkIndex);
+        
+        addLog(`⏱️  ${virtualTime}s -> Chunk ${chunkIndex} (${localTime.toFixed(3)}s) -> ${reconstructed.toFixed(3)}s`);
+        
+        if (chunk) {
+          addLog(`   📍 Chunk ${chunkIndex}: ${chunk.startTime.toFixed(2)}s-${chunk.endTime.toFixed(2)}s (${chunk.duration.toFixed(2)}s)`);
+        }
+      });
+      
+      // Test edge cases
+      addLog('🔍 Testing edge cases...');
+      
+      // Test negative time
+      const negativeResult = timeline.getChunkPosition(-5);
+      addLog(`❄️  Negative time (-5s) -> Chunk ${negativeResult.chunkIndex}, Local ${negativeResult.localTime.toFixed(3)}s`);
+      
+      // Test time beyond end
+      const beyondResult = timeline.getChunkPosition(50);
+      addLog(`🚀 Beyond end (50s) -> Chunk ${beyondResult.chunkIndex}, Local ${beyondResult.localTime.toFixed(3)}s`);
+      
+      // Test near chunk end detection
+      const testNearEnd = [3.0, 6.0, 9.0, 12.0];
+      testNearEnd.forEach(time => {
+        const isNear = timeline.isNearChunkEnd(time, 1.0);
+        addLog(`🔚 ${time}s near chunk end (1s threshold): ${isNear ? 'YES' : 'NO'}`);
+      });
+      
+      // Test chunk navigation
+      addLog('🧭 Testing chunk navigation...');
+      for (let i = 0; i < Math.min(3, book.chunks.length); i++) {
+        const next = timeline.getNextChunkIndex(i);
+        const prev = timeline.getPreviousChunkIndex(i);
+        addLog(`   Chunk ${i}: prev=${prev}, next=${next}`);
+      }
+      
+      addLog('✅ Phase 1 Virtual Timeline tests completed!');
+      
+    } catch (error) {
+      addLog(`❌ Virtual timeline test failed: ${error}`);
     }
   };
 
@@ -192,6 +249,7 @@ export function AudioPlayerTest() {
             className="flex-1 min-w-64 px-3 py-2 border rounded-md"
           />
           <Button onClick={testApiDirectly}>Test API Directly</Button>
+          <Button onClick={testVirtualTimeline} variant="secondary">🧪 Test Phase 1</Button>
           <Button onClick={clearLogs} variant="outline">Clear Logs</Button>
         </div>
 
