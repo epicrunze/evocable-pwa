@@ -210,7 +210,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
         isLoading: false,
         volume: 1,
         playbackRate: 1,
-        bufferedRanges: new TimeRanges(),
+        bufferedRanges: null,
         // Virtual timeline properties
         virtualCurrentTime: 0,
         virtualDuration: timeline.getTotalDuration(),
@@ -424,7 +424,7 @@ export function useAudio(options: UseAudioOptions = {}): UseAudioReturn {
         isLoading: true,
         volume: 1,
         playbackRate: 1,
-        bufferedRanges: new TimeRanges(),
+        bufferedRanges: null,
         // Virtual timeline properties (placeholder values)
         virtualCurrentTime: 0,
         virtualDuration: 0,
